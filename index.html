@@ -529,7 +529,7 @@
 </div>
 
 <script>
-  // ── CONFIG ──
+<script>
   let config = { clientToken:'', clientKey:'', userToken:'', claudeKey:'' };
   let isConnected = false;
   let chatHistory = [];
@@ -544,310 +544,1343 @@
     }
     isConnected = true;
     document.getElementById('status-dot').classList.add('connected');
-    document.getElementById('status-text').textContent = 'Connecte';
-    addMessage('ai', 'Configuration sauvegardee ! Pose-moi une question sur tes donnees Boond.');
+    document.getElementById('status-text').textContent = 'Connecté';
+    addMessage('ai', '✅ Configuration sauvegardée ! Je connais 87 tables Boond (746 champs). Pose-moi une question.');
   }
 
-  // ── JWT BOOND ──
-  function toBase64(obj) {
-    return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
-  }
-
+  function toBase64(obj) { return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
   async function toHmacSha256Base64(message, key) {
     const enc = new TextEncoder();
-    const cryptoKey = await crypto.subtle.importKey(
-      'raw', enc.encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-    );
-    const sig = await crypto.subtle.sign('HMAC', cryptoKey, enc.encode(message));
+    const k = await crypto.subtle.importKey('raw', enc.encode(key), { name:'HMAC', hash:'SHA-256' }, false, ['sign']);
+    const sig = await crypto.subtle.sign('HMAC', k, enc.encode(message));
     return btoa(String.fromCharCode(...new Uint8Array(sig)));
   }
-
   async function buildBoondJWT() {
-    const header  = { alg: 'HS256', type: 'JWT' };
-    const payload = { userToken: config.userToken, clientToken: config.clientToken, time: Math.floor(Date.now()/1000), mode: 'normal' };
-    const h = toBase64(header);
-    const p = toBase64(payload);
-    const hash = await toHmacSha256Base64(h + '.' + p, config.clientKey);
-    return h + '.' + p + '.' + hash;
+    const h = toBase64({ alg:'HS256', type:'JWT' });
+    const p = toBase64({ userToken: config.userToken, clientToken: config.clientToken, time: Math.floor(Date.now()/1000), mode:'normal' });
+    return h + '.' + p + '.' + await toHmacSha256Base64(h+'.'+p, config.clientKey);
   }
-
-  // ── APPEL API BOOND ──
   async function callBoond(method, endpoint, body) {
     const jwt = await buildBoondJWT();
-    const url = 'https://ui.boondmanager.com' + endpoint;
-    const opts = {
-      method,
-      headers: {
-        'X-Jwt-Client-Boondmanager': jwt,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    };
+    const opts = { method, headers: { 'X-Jwt-Client-Boondmanager': jwt, 'Content-Type':'application/json', 'Accept':'application/json' } };
     if (body) opts.body = JSON.stringify(body);
-    const res  = await fetch(url, opts);
-    const data = await res.json();
-    return { status: res.status, ok: res.ok, data };
+    const res = await fetch('https://ui.boondmanager.com' + endpoint, opts);
+    return { status: res.status, ok: res.ok, data: await res.json() };
   }
-
-  // ── APPEL CLAUDE ──
+  async function callBoondAutoMethod(endpoint, body) {
+    for (const method of ['PUT','PATCH','POST']) {
+      const r = await callBoond(method, endpoint, body);
+      if (r.status !== 405) return { ...r, usedMethod: method };
+    }
+    return { ok:false, status:405, data:{error:'No method worked'}, usedMethod:'none' };
+  }
   function extractJSON(text) {
-    let clean = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-    const start = clean.indexOf('{');
-    const end   = clean.lastIndexOf('}');
-    if (start !== -1 && end !== -1) clean = clean.slice(start, end + 1);
-    return JSON.parse(clean);
+    let c = text.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+    const s = c.indexOf('{'), e = c.lastIndexOf('}');
+    if (s!==-1 && e!==-1) c = c.slice(s, e+1);
+    return JSON.parse(c);
+  }
+  async function callClaudeRaw(systemPrompt, userContent, maxTokens) {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'x-api-key':config.claudeKey, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+      body: JSON.stringify({ model:'claude-sonnet-4-5-20250929', max_tokens: maxTokens||1500, system: systemPrompt, messages:[{role:'user', content:userContent}] })
+    });
+    const d = await r.json();
+    return d.content?.[0]?.text || '';
   }
 
-  async function callClaudeRaw(systemPrompt, userContent, maxTokens) {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': config.claudeKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: maxTokens || 1200,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userContent }]
-      })
-    });
-    const data = await response.json();
-    return data.content?.[0]?.text || '';
-  }
+  const BOOND_SCHEMA = `
+=== SCHEMA COMPLET BASE DE DONNEES BOOND MANAGER (87 tables) ===
+
+### TAB_CRMCONTACT
+Description: Contact CRM
+API: GET/PUT /api/contacts, GET/PUT /api/contacts/{id} — Recherche: ?keywords=NOM&maxResults=N
+  ID_CRMCONTACT: INT PK - identifiant unique
+  CCON_NOM: VARCHAR(100) - nom
+  CCON_PRENOM: VARCHAR(100) - prénom
+  CCON_EMAIL: VARCHAR(100) - email 1
+  CCON_EMAIL2: VARCHAR(100) - email 2
+  CCON_EMAIL3: VARCHAR(100) - email 3
+  CCON_TEL1: CHAR(20) - téléphone 1
+  CCON_TEL2: CHAR(20) - téléphone 2
+  CCON_FAX: CHAR(20) - fax
+  CCON_FONCTION: VARCHAR(100) - fonction/poste
+  CCON_SERVICE: VARCHAR(100) - service/département
+  CCON_TYPE: INT - type (cf. data.setting.state.contact)
+  CCON_TYPES: TEXT - multi-types séparés |
+  CCON_TYPESOURCE: INT - type origine
+  CCON_SOURCE: VARCHAR(100) - détail origine
+  CCON_CIVILITE: INT - civilité
+  CCON_ADR: VARCHAR(250) - adresse
+  CCON_CP: CHAR(10) - code postal
+  CCON_VILLE: VARCHAR(100) - ville
+  CCON_PAYS: VARCHAR(100) - pays (défaut: France)
+  CCON_SUBDIVISION: VARCHAR(6) - sous-division ISO-3166-2
+  CCON_COMMENTAIRE: VARCHAR(250) - commentaires
+  CCON_OUTILS: TEXT - outils (tool1|tool2)
+  CCON_APPLICATIONS: TEXT - domaines activité
+  CCON_DATE: DATETIME - date création
+  CCON_DATEUPDATE: DATETIME - date mise à jour
+  CCON_DATELASTACTIVITY: DATETIME - dernière activité
+  CCON_ETATGDPR: TINYINT(1) - consentement RGPD
+  CCON_DATEGDPR: DATE - expiration RGPD
+  CCON_THUMBNAIL: VARCHAR(100) - photo
+  ID_PROFIL: INT FK TAB_PROFIL - responsable manager principal
+  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société associée
+  ID_POLE: INT FK TAB_POLE - pôle
+  ID_SOCIETE: INT FK TAB_SOCIETE - agence
+  ID_CREATOR: INT FK TAB_PROFIL - créateur
+
+### TAB_CRMSOCIETE
+Description: Société CRM (Company)
+API: GET/PUT /api/companies, GET/PUT /api/companies/{id} — Recherche: ?keywords=NOM&maxResults=N
+  ID_CRMSOCIETE: INT PK - identifiant unique
+  CSOC_SOCIETE: VARCHAR(100) - nom de la société
+  CSOC_TYPE: INT - type (cf. data.setting.state.company)
+  CSOC_TYPESOURCE: INT - type origine
+  CSOC_SOURCE: VARCHAR(100) - détail origine
+  CSOC_SIREN: VARCHAR(100) - SIREN
+  CSOC_NIC: CHAR(5) - NIC
+  CSOC_NAF: VARCHAR(100) - code NAF/APE
+  CSOC_RCS: VARCHAR(100) - RCS
+  CSOC_TVA: VARCHAR(100) - numéro TVA
+  CSOC_STATUT: VARCHAR(100) - statut juridique
+  CSOC_EFFECTIF: INT(6) - effectif
+  CSOC_ADR: VARCHAR(250) - adresse
+  CSOC_CP: CHAR(10) - code postal
+  CSOC_VILLE: VARCHAR(100) - ville
+  CSOC_PAYS: VARCHAR(100) - pays
+  CSOC_SUBDIVISION: VARCHAR(6) - sous-division
+  CSOC_TEL: CHAR(20) - téléphone
+  CSOC_FAX: CHAR(20) - fax
+  CSOC_WEB: VARCHAR(100) - site web
+  CSOC_NUMERO: VARCHAR(250) - numéro fournisseur
+  CSOC_METIERS: TEXT - commentaires métiers
+  CSOC_INTERVENTION: TEXT - domaine d'expertise
+  CSOC_SERVICES: TEXT - services/depts (séparés |)
+  CSOC_DATE: DATETIME - date création
+  CSOC_DATEUPDATE: DATETIME - date mise à jour
+  CSOC_THUMBNAIL: VARCHAR(100) - logo
+  ID_PROFIL: INT FK TAB_PROFIL - responsable manager principal
+  ID_RESPSOC: INT FK TAB_CRMSOCIETE - société mère
+  ID_POLE: INT FK TAB_POLE - pôle
+  ID_SOCIETE: INT FK TAB_SOCIETE - agence
+  ID_CREATOR: INT FK TAB_PROFIL - créateur
+
+### TAB_PROFIL
+Description: Profil = Ressource ou Candidat
+API: GET/PUT /api/resources, GET/PUT /api/resources/{id} | GET/PUT /api/candidates, GET/PUT /api/candidates/{id} — Recherche: ?keywords=NOM
+  ID_PROFIL: INT PK - identifiant unique
+  PROFIL_NOM: VARCHAR(100) - nom
+  PROFIL_PRENOM: VARCHAR(100) - prénom
+  PROFIL_EMAIL: VARCHAR(100) - email principal
+  PROFIL_EMAIL2: VARCHAR(100) - email 2
+  PROFIL_EMAIL3: VARCHAR(100) - email 3
+  PROFIL_TEL1: CHAR(20) - tél 1
+  PROFIL_TEL2: CHAR(20) - tél 2
+  PROFIL_TEL3: CHAR(20) - tél 3
+  PROFIL_FAX: CHAR(20) - fax
+  PROFIL_STATUT: VARCHAR(100) - fonction/titre (ressource) ou évaluation (candidat)
+  PROFIL_ETAT: INT - état ressource/candidat
+  PROFIL_MODEL: VARCHAR(50) - 'resource' ou 'candidate'
+  PROFIL_TYPE: INT - type (cf. data.setting.typeOf.resource) — CAUTION: 1=ressource externe
+  PROFIL_CIVILITE: INT - civilité
+  PROFIL_DATENAISSANCE: DATE - date de naissance
+  PROFIL_LIEUNAISSANCE: VARCHAR(100) - lieu de naissance
+  PROFIL_NATIONALITE: VARCHAR(100) - nationalité
+  PROFIL_NUMSECU: CHAR(21) - numéro sécu
+  PROFIL_SITUATION: INT - situation familiale
+  PROFIL_ADR: VARCHAR(250) - adresse
+  PROFIL_CP: CHAR(10) - code postal
+  PROFIL_VILLE: VARCHAR(100) - ville
+  PROFIL_PAYS: VARCHAR(100) - pays
+  PROFIL_SUBDIVISION: VARCHAR(6) - sous-division
+  PROFIL_REFERENCE: VARCHAR(250) - référence (ressource uniquement)
+  PROFIL_VISIBILITE: TINYINT(1) - visibilité (1=visible)
+  PROFIL_ALLOWCHANGE: TINYINT(1) - autorise modif TD depuis intranet (ressource)
+  PROFIL_DATE: DATETIME - date création
+  PROFIL_DATEUPDATE: DATETIME - date mise à jour
+  PROFIL_DATELASTACTIVITY: DATETIME - dernière activité
+  PROFIL_DDCA: DATE - date ancienneté
+  PROFIL_ETATGDPR: TINYINT(1) - consentement RGPD
+  PROFIL_THUMBNAIL: UNKNOWN - photo
+  PARAM_DATEDISPO: DATE - date de disponibilité
+  PARAM_TYPEDISPO: INT - type disponibilité (1-4 ressource, 9/-1 candidat)
+  PARAM_COMMENTAIRE: TEXT - commentaires info
+  PARAM_COMMENTAIRE2: TEXT - commentaires admin
+  PARAM_CJM_ACTUAL: DECIMAL - CJM actuel
+  PARAM_TARIF1: DECIMAL - TJM moyen HT (ressource) ou salaire actuel (candidat)
+  PARAM_TARIF2: DECIMAL - salaire min souhaité (candidat)
+  PARAM_TARIF3: DECIMAL - salaire max souhaité (candidat)
+  PARAM_CONTRAT: INT - type contrat (candidat)
+  PARAM_MOBILITE: TEXT - zone mobilité
+  PARAM_TYPESOURCE: INT - type source (candidat)
+  PARAM_SOURCE: VARCHAR(100) - détail source (candidat)
+  ID_RESPMANAGER: INT FK TAB_USER - responsable manager principal
+  ID_RESPRH: INT FK TAB_USER - responsable RH
+  ID_POLE: INT FK TAB_POLE - pôle
+  ID_SOCIETE: INT FK TAB_SOCIETE - agence
+  ID_CREATOR: INT FK TAB_PROFIL - créateur
+  ID_DT: INT FK TAB_DT - document technique
+  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact fournisseur (candidat/externe)
+  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société fournisseur (candidat/externe)
+  ID_EMBAUCHE: INT FK TAB_PROFIL - ressource issue de ce candidat
+
+### TAB_PROJET
+Description: Projet
+API: GET/PUT /api/projects, GET/PUT /api/projects/{id} — Recherche: ?keywords=REF
+  ID_PROJET: INT PK - identifiant unique
+  PRJ_REFERENCE: VARCHAR(100) - référence projet
+  PRJ_ETAT: INT - état (cf. data.setting.state.project)
+  PRJ_TYPE: INT - mode (-1=abs inactif,-2=int inactif, cf. setting.typeOf.project)
+  PRJ_TYPEREF: INT - type projet
+  PRJ_DEBUT: DATE - date début
+  PRJ_FIN: DATE - date fin
+  PRJ_COMMENTAIRES: TEXT - commentaires
+  PRJ_TAUXHORAIRE: DECIMAL - taux unitaire
+  PRJ_TARIFADDITIONNEL: DECIMAL - CA additionnel
+  PRJ_INVESTISSEMENT: DECIMAL - coûts additionnels
+  PRJ_RESTEAFAIRE: DECIMAL - reste à faire (mode forfait)
+  PRJ_DEVISE: INT - devise
+  PRJ_CHANGE: DECIMAL - taux de change
+  PRJ_ADR: VARCHAR(250) - adresse livraison
+  PRJ_CP: CHAR(10) - CP livraison
+  PRJ_VILLE: VARCHAR(100) - ville livraison
+  PRJ_PAYS: VARCHAR(100) - pays livraison
+  PRJ_LOTSTAB: TINYINT(1) - afficher onglet lots
+  PRJ_DATE: DATETIME - date création
+  PRJ_DATEUPDATE: DATETIME - date mise à jour
+  PRJ_DATELASTACTIVITY: DATETIME - dernière activité
+  ID_PROFIL: INT FK TAB_PROFIL - responsable manager principal
+  ID_PROFILCDP: TINYTEXT - liste chefs de projet (IDs séparés |)
+  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société cliente
+  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact client
+  ID_CRMTECHNIQUE: INT FK TAB_CRMCONTACT - contact technique
+  ID_AO: INT FK TAB_AO - opportunité liée
+  ID_POLE: INT FK TAB_POLE - pôle
+  ID_SOCIETE: INT FK TAB_SOCIETE - agence
+
+### TAB_AO
+Description: Appel d'offres / Opportunité (Opportunity)
+API: GET/PUT /api/opportunities, GET/PUT /api/opportunities/{id}
+  ID_AO: INT PK
+  AO_TITLE: VARCHAR(150) - titre
+  AO_REF: VARCHAR(250) - référence
+  AO_ETAT: INT - état (cf. data.setting.state.opportunity)
+  AO_DEBUT: DATE - date de début
+  AO_FIN: DATE - date de fin
+  AO_DATELIMITE: DATE - date limite
+  AO_DATECLOSING: DATE - date de closing
+  AO_TYPE: INT - mode (cf. data.setting.typeOf.project mode)
+  AO_TYPEREF: INT - type projet
+  AO_TYPESOURCE: INT - type origine
+  AO_SOURCE: VARCHAR - détail origine
+  AO_BUDGET: DECIMAL - budget estimé
+  AO_CA: DECIMAL - CA estimé
+  AO_TARIFADDITIONNEL: DECIMAL - CA additionnel
+  AO_INVESTISSEMENT: DECIMAL - coûts additionnels
+  AO_PROBA: TINYINT - pondération (probabilité %)
+  AO_FORCEPROBA: TINYINT(1) - forcer la proba manuellement
+  AO_DUREE: INT - durée
+  AO_TYPEDEBUT: TINYINT - type début (1=immédiat, 2=après date)
+  AO_DESCRIPTION: TEXT - description
+  AO_CRITERES: TEXT - critères
+  AO_OUTILS: TEXT - outils (tool1|level#tool2|level)
+  AO_APPLICATIONS: TEXT - domaines d'activité (cat|domain séparés |)
+  AO_INTERVENTION: TEXT - zone d'expertise
+  AO_LIEU: TEXT - lieu / mobilité
+  AO_TAUXHORAIRE: DECIMAL - taux unitaire
+  AO_VISIBILITE: TINYINT(1) - visibilité (1=visible)
+  AO_DEPOT: DATETIME - date création
+  AO_DATEUPDATE: DATETIME - date mise à jour
+  AO_DATELASTACTIVITY: DATETIME - dernière activité
+  ID_PROFIL: INT FK TAB_PROFIL - responsable principal
+  ID_PROFILRH: INT FK TAB_PROFIL - responsable RH
+  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société
+  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact
+  ID_POLE: INT FK TAB_POLE - pôle
+  ID_SOCIETE: INT FK TAB_SOCIETE - agence
+
+### TAB_FACTURATION
+Description: Facture / Invoice
+API: GET/PUT /api/bills, GET/PUT /api/bills/{id}
+  ID_FACTURATION: INT PK
+  FACT_REF: VARCHAR(250) - référence
+  FACT_DATE: DATE - date de facturation
+  FACT_DEBUT: DATE - période début
+  FACT_FIN: DATE - période fin
+  FACT_ETAT: INT - état (cf. data.setting.state.invoice)
+  FACT_AVOIR: TINYINT(1) - avoir/credit note (1=oui)
+  FACT_CLOTURE: TINYINT(1) - clôturée (1=oui)
+  FACT_TOTALHT: DECIMAL - total HT
+  FACT_TOTALTTC: DECIMAL - total TTC
+  FACT_AMOUNT_PAYABLE: DECIMAL - montant restant à payer TTC
+  FACT_TAUXREMISE: DECIMAL - taux remise
+  FACT_TYPEPAYMENT: INT - moyen paiement
+  FACT_CONDREGLEMENT: TINYINT - conditions règlement
+  FACT_DATEREGLEMENTATTENDUE: DATE - date paiement attendue
+  FACT_DATEREGLEMENTRECUE: DATE - date paiement reçue
+  FACT_FORCEDATEREGLEMENTATTENDUE: TINYINT(1) - date paiement forcée
+  FACT_TYPE_OF: TINYINT - type contenu (0=all,1=temps,2=frais,3=achats...)
+  FACT_NATURE: TINYINT(1) - nature (0=service, 1=bien)
+  FACT_COMMENTAIRE: TEXT - commentaires
+  FACT_SHOWCOMMENTAIRE: TINYINT(1) - afficher commentaire sur PDF
+  FACT_ETAT_ENVOI: TINYINT(1) - état envoi
+  FACT_DEVISE: INT - devise
+  FACT_CHANGE: DECIMAL - taux de change
+  FACT_CREATEDAT: DATETIME - date création
+  FACT_UPDATEDAT: DATETIME - date MAJ
+  FACT_CC_NOM: VARCHAR(100) - nom société destinataire
+  FACT_CC_CONTACT: VARCHAR(200) - contact destinataire
+  FACT_CC_ADR1: VARCHAR(250) - adresse destinataire
+  FACT_CC_SIREN: VARCHAR(95) - SIREN destinataire
+  FACT_SOCIETE_RAISON: VARCHAR(100) - nom agence émettrice
+  FACT_SOCIETE_SIREN: VARCHAR(95) - SIREN agence
+  FACT_RIB_IBAN: CHAR(34) - IBAN
+  FACT_RIB_BIC: CHAR(11) - BIC
+  ID_BONDECOMMANDE: INT FK TAB_BONDECOMMANDE - bon de commande
+  ID_ECHEANCIER: INT FK TAB_ECHEANCIER - échéancier
+  ID_PARENT_FACTURATION: INT FK TAB_FACTURATION - facture parente (avoir)
+  ID_CREATOR: INT FK TAB_PROFIL - créateur
+
+### TAB_ACHAT
+Description: Achat / Purchase
+API: GET/PUT /api/purchases, GET/PUT /api/purchases/{id}
+  ID_ACHAT: INT PK - identifiant unique
+  ACHAT_TITLE: VARCHAR(150) - titre
+  ACHAT_REF: VARCHAR(250) - référence
+  ACHAT_DATE: DATE - date
+  ACHAT_DEBUT: DATE - date début
+  ACHAT_FIN: DATE - date fin
+  ACHAT_ETAT: INT - état (cf. data.setting.state.purchase)
+  ACHAT_MONTANTHT: DECIMAL - montant HT
+  ACHAT_MONTANTTTC: DECIMAL - montant TTC
+  ACHAT_TOTALHT: DECIMAL - total HT
+  ACHAT_TOTALTTC: DECIMAL - total TTC
+  ACHAT_TAUXTVA: DECIMAL - taux TVA
+  ACHAT_QUANTITE: DECIMAL - quantité
+  ACHAT_TYPE: INT - type abonnement
+  ACHAT_CATEGORIE: INT - catégorie (cf. data.setting.typeOf.purchase)
+  ACHAT_TYPEPAYMENT: INT - moyen de paiement
+  ACHAT_CONDREGLEMENT: INT - conditions règlement
+  ACHAT_REFACTURE: TINYINT(1) - refacturable (0/1)
+  ACHAT_TARIFFACTURE: DECIMAL - prix refacturé HT
+  ACHAT_COMMENTAIRE: TEXT - commentaires
+  ID_PROJET: INT FK TAB_PROJET - projet associé
+  ID_PROFIL: INT FK TAB_PROFIL - responsable
+  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - fournisseur société
+  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - fournisseur contact
+  ID_POLE: INT FK TAB_POLE - pôle
+  ID_SOCIETE: INT FK TAB_SOCIETE - agence
+
+### TAB_BONDECOMMANDE
+Description: Bon de commande / Purchase Order
+API: GET/PUT /api/orders, GET/PUT /api/orders/{id}
+  ID_BONDECOMMANDE: INT PK - identifiant unique
+  BC_REF: VARCHAR - référence
+  BC_DATE: DATE - date
+  BC_DEBUT: DATE - date début
+  BC_FIN: DATE - date fin
+  BC_ETAT: INT - état
+  BC_MONTANTHT: DECIMAL - montant HT
+  BC_MONTANTTTC: DECIMAL - montant TTC
+  BC_COMMENTAIRE: TEXT - commentaire
+  ID_PROJET: INT FK TAB_PROJET - projet
+  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société
+  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact
+  ID_PROFIL: INT FK TAB_PROFIL - responsable
+
+### TAB_DEVIS
+Description: Devis / Quotation
+API: GET/PUT /api/quotations, GET/PUT /api/quotations/{id}
+  ID_DEVIS: INT PK - identifiant unique
+  DEVIS_REF: VARCHAR - référence
+  DEVIS_DATE: DATE - date
+  DEVIS_DEBUT: DATE - début validité
+  DEVIS_FIN: DATE - fin validité
+  DEVIS_ETAT: INT - état
+  DEVIS_TOTALHT: DECIMAL - total HT
+  DEVIS_TOTALTTC: DECIMAL - total TTC
+  DEVIS_TAUXREMISE: DECIMAL - taux remise
+  DEVIS_COMMENTAIRE: TEXT - commentaire
+  ID_PROJET: INT FK TAB_PROJET
+  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE
+  ID_CRMCONTACT: INT FK TAB_CRMCONTACT
+  ID_PROFIL: INT FK TAB_PROFIL - responsable
+
+### TAB_MISSIONPROJET
+Description: Mission sur un projet (lien projet/ressource)
+API: GET /api/projects/{id}/missions, POST /api/projects/{id}/missions
+  ID_MISSIONPROJET: INT PK - identifiant unique
+  ID_PROJET: INT FK TAB_PROJET - projet
+  ID_PROFIL: INT FK TAB_PROFIL - ressource positionnée
+  MISSION_DEBUT: DATE - date début mission
+  MISSION_FIN: DATE - date fin mission
+  MISSION_ETAT: INT - état de la mission
+  MISSION_TARIFHT: DECIMAL - tarif journalier HT
+  MISSION_TYPE: INT - type mission
+  MISSION_COMMENTAIRE: TEXT - commentaire
+
+### TAB_POSITIONNEMENT
+Description: Positionnement (candidature d'une ressource/candidat sur une opportunité)
+API: GET /api/positionings
+  ID_POSITIONNEMENT: INT PK - identifiant unique
+  ID_AO: INT FK TAB_AO - opportunité
+  ID_PROFIL: INT FK TAB_PROFIL - ressource/candidat
+  POS_ETAT: INT - état du positionnement
+  POS_DATE: DATETIME - date
+  POS_COMMENTAIRE: TEXT - commentaire
+  POS_TARIFHT: DECIMAL - tarif proposé
+
+### TAB_CONTRAT
+Description: Contrat de travail / Employment Contract
+API: GET/PUT /api/contracts, GET/PUT /api/contracts/{id}
+  ID_CONTRAT: INT PK - identifiant unique
+  CONTRAT_TYPE: INT - type contrat (CDI, CDD, etc.)
+  CONTRAT_DEBUT: DATE - date début
+  CONTRAT_FIN: DATE - date fin
+  CONTRAT_ETAT: INT - état
+  CONTRAT_COMMENTAIRE: TEXT - commentaire
+  CONTRAT_SALAIRE: DECIMAL - salaire
+  CONTRAT_DUREEPREAV: INT - durée préavis
+  ID_PROFIL: INT FK TAB_PROFIL - ressource
+  ID_SOCIETE: INT FK TAB_SOCIETE - agence
+
+### TAB_TEMPS
+Description: Feuille de temps (Time Sheet header)
+API: GET /api/times, GET /api/times/{id}
+  ID_TEMPS: INT PK - identifiant unique
+  ID_PROFIL: INT FK TAB_PROFIL - ressource
+  TEMPS_MOIS: INT - mois
+  TEMPS_ANNEE: INT - année
+  TEMPS_ETAT: INT - état de validation
+  TEMPS_TOTALH: DECIMAL - total heures
+  TEMPS_TOTALA: DECIMAL - total absences
+
+### TAB_LIGNETEMPS
+Description: Ligne de temps (Time Entry)
+API: sous-ressource de TEMPS
+  ID_LIGNETEMPS: INT PK
+  ID_TEMPS: INT FK TAB_TEMPS
+  ID_PROJET: INT FK TAB_PROJET
+  LIGNETEMPS_DATE: DATE - date
+  LIGNETEMPS_DUREE: DECIMAL - durée (jours)
+  LIGNETEMPS_TYPE: INT - type heure
+  LIGNETEMPS_COMMENTAIRE: VARCHAR - commentaire
+
+### TAB_FRAIS
+Description: Note de frais (Expense Report header)
+API: GET /api/expenses, GET /api/expenses/{id}
+  ID_FRAIS: INT PK - identifiant unique
+  ID_PROFIL: INT FK TAB_PROFIL - ressource
+  FRAIS_MOIS: INT - mois
+  FRAIS_ANNEE: INT - année
+  FRAIS_ETAT: INT - état validation
+  FRAIS_TOTALTTC: DECIMAL - total TTC
+  FRAIS_TOTALHT: DECIMAL - total HT
+
+### TAB_LIGNEFRAIS
+Description: Ligne de frais (Expense Line)
+API: sous-ressource de FRAIS
+  ID_LIGNEFRAIS: INT PK
+  ID_FRAIS: INT FK TAB_FRAIS
+  ID_PROJET: INT FK TAB_PROJET
+  LIGNEFRAIS_DATE: DATE - date
+  LIGNEFRAIS_MONTANTTTC: DECIMAL - montant TTC
+  LIGNEFRAIS_MONTANTHT: DECIMAL - montant HT
+  LIGNEFRAIS_TAUXTVA: DECIMAL - taux TVA
+  LIGNEFRAIS_TYPE: INT - type frais
+  LIGNEFRAIS_COMMENTAIRE: VARCHAR - commentaire
+  LIGNEFRAIS_REFACTURE: TINYINT(1) - refacturable
+
+### TAB_PABSENCE
+Description: Période d'absence (Leave / Absence)
+API: GET /api/absences
+  ID_PABSENCE: INT PK - identifiant unique
+  ID_PROFIL: INT FK TAB_PROFIL - ressource
+  PABS_DEBUT: DATE - date début
+  PABS_FIN: DATE - date fin
+  PABS_TYPE: INT - type absence
+  PABS_ETAT: INT - état validation
+  PABS_COMMENTAIRE: TEXT - commentaire
+  PABS_DUREE: DECIMAL - durée en jours
+
+### TAB_USER
+Description: Utilisateur Boond (accès manager/admin)
+API: GET /api/users, GET /api/users/{id}
+  ID_USER: INT PK - identifiant unique
+  USER_LOGIN: VARCHAR - login
+  USER_EMAIL: VARCHAR - email
+  USER_NOM: VARCHAR - nom
+  USER_PRENOM: VARCHAR - prénom
+  USER_ROLE: INT - rôle
+  USER_ETAT: INT - état (actif/inactif)
+  USER_LASTCONNEXION: DATETIME - dernière connexion
+  ID_PROFIL: INT FK TAB_PROFIL - profil associé
+  ID_SOCIETE: INT FK TAB_SOCIETE - agence
+
+### TAB_POLE
+Description: Pôle / Division (business unit division)
+API: GET /api/poles
+  ID_POLE: INT PK
+  POLE_NOM: VARCHAR - nom
+  POLE_CODE: VARCHAR - code
+  ID_SOCIETE: INT FK TAB_SOCIETE
+
+### TAB_ACTION
+Description: Action / CRM Action (emails, appels, rendez-vous...)
+API: GET/POST /api/actions, GET/PUT /api/actions/{id}
+  ID_ACTION: INT PK - identifiant unique
+  ACTION_TITLE: VARCHAR - titre
+  ACTION_DATE: DATETIME - date
+  ACTION_DATEECHEANCE: DATETIME - date d'échéance
+  ACTION_TYPE: INT - type d'action (cf. data.setting.typeOf.action)
+  ACTION_ETAT: INT - état
+  ACTION_COMMENTAIRE: TEXT - commentaire / corps
+  ACTION_PRIORITE: INT - priorité
+  ID_PROFIL: INT FK TAB_PROFIL - responsable
+  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact CRM lié
+  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société liée
+  ID_AO: INT FK TAB_AO - opportunité liée
+  ID_PROJET: INT FK TAB_PROJET - projet lié
+  ID_POLE: INT FK TAB_POLE - pôle
+
+### TAB_TACHE
+Description: Tâche (Task)
+API: GET /api/tasks
+  ID_TACHE: INT PK
+  TACHE_TITRE: VARCHAR - titre
+  TACHE_DESCRIPTION: TEXT
+  TACHE_DEBUT: DATE
+  TACHE_FIN: DATE
+  TACHE_ETAT: INT - état
+  TACHE_PRIORITE: INT - priorité
+  ID_PROFIL: INT FK TAB_PROFIL - assigné
+  ID_PROJET: INT FK TAB_PROJET
+
+### TAB_VALIDATION
+Description: Validation (workflow approval)
+API: GET /api/validations
+  ID_VALIDATION: INT PK
+  VALID_TYPE: INT - type entité validée
+  VALID_ETAT: INT - état
+  VALID_DATE: DATETIME - date
+  VALID_COMMENTAIRE: TEXT
+  ID_PROFIL: INT FK TAB_PROFIL - valideur
+  ID_OBJET: INT - ID de l'objet validé
+
+### TAB_ECHEANCIER
+Description: Échéancier de facturation
+API: GET /api/schedules
+  ID_ECHEANCIER: INT PK
+  ECH_REF: VARCHAR - référence
+  ECH_MONTANTHT: DECIMAL - montant HT
+  ECH_MONTANTTTC: DECIMAL - montant TTC
+  ECH_DATE: DATE - date
+  ID_PROJET: INT FK TAB_PROJET
+  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE
+  ID_BONDECOMMANDE: INT FK TAB_BONDECOMMANDE
+
+### TAB_LOT
+Description: Lot / batch (forfait de projet)
+API: sous-ressource de projet
+  ID_LOT: INT PK
+  ID_PROJET: INT FK TAB_PROJET
+  LOT_TITRE: VARCHAR - titre
+  LOT_DEBUT: DATE - début
+  LOT_FIN: DATE - fin
+  LOT_BUDGET: DECIMAL - budget
+  LOT_CONSOMME: DECIMAL - consommé
+  LOT_RESTE: DECIMAL - reste à faire
+
+### TAB_JALON
+Description: Jalon / milestone
+API: sous-ressource de projet ou lot
+  ID_JALON: INT PK
+  ID_PROJET: INT FK TAB_PROJET
+  ID_LOT: INT FK TAB_LOT
+  JAL_TITRE: VARCHAR
+  JAL_DATE: DATE
+  JAL_MONTANTHT: DECIMAL
+  JAL_ETAT: INT
+
+### TAB_FACTURATION_PAIEMENT
+Description: Paiement d'une facture client
+API: (pas d'API directe)
+  ID_FACTURATION_PAIEMENT: INT PK
+  ID_FACTURATION: INT FK TAB_FACTURATION
+  FACTPAY_DATE: DATE
+  FACTPAY_MONTANT: DECIMAL
+  FACTPAY_TYPE: INT
+
+### TAB_ITEMFACTURE
+Description: Ligne d'une facture
+API: sous-ressource de facture
+  ID_ITEMFACTURE: INT PK
+  ID_FACTURATION: INT FK TAB_FACTURATION
+  ITEMFACT_LIBELLE: VARCHAR - libellé
+  ITEMFACT_QUANTITE: DECIMAL
+  ITEMFACT_PRIXUNITHT: DECIMAL
+  ITEMFACT_TAUXTVA: DECIMAL
+  ITEMFACT_TOTALHT: DECIMAL
+  ITEMFACT_TOTALTTC: DECIMAL
+
+### TAB_ITEMDEVIS
+Description: Ligne d'un devis
+API: sous-ressource de devis
+  ID_ITEMDEVIS: INT PK
+  ID_DEVIS: INT FK TAB_DEVIS
+  ITEMDEVIS_LIBELLE: VARCHAR
+  ITEMDEVIS_QUANTITE: DECIMAL
+  ITEMDEVIS_PRIXUNITHT: DECIMAL
+  ITEMDEVIS_TAUXTVA: DECIMAL
+  ITEMDEVIS_TOTALHT: DECIMAL
+
+### TAB_RIB
+Description: RIB / Coordonnées bancaires
+API: sous-ressource de profil ou société
+  ID_RIB: INT PK
+  RIB_IBAN: CHAR(34) - IBAN
+  RIB_BIC: CHAR(11) - BIC/SWIFT
+  RIB_BANQUE: VARCHAR - nom banque
+  RIB_DESCRIPTION: TEXT
+  RIB_DEFAULT: TINYINT(1) - RIB par défaut
+  ID_PROFIL: INT FK TAB_PROFIL
+  ID_SOCIETE: INT FK TAB_SOCIETE
+
+### TAB_REFERENCE
+Description: Référence (expérience) d'une ressource
+API: sous-ressource de profil
+  ID_REFERENCE: INT PK
+  ID_PROFIL: INT FK TAB_PROFIL
+  REF_TITRE: VARCHAR - titre du poste
+  REF_DESCRIPTION: TEXT
+  REF_DEBUT: DATE
+  REF_FIN: DATE
+  REF_CLIENT: VARCHAR - nom client
+  REF_TYPE: INT
+
+### TAB_AVANTAGE
+Description: Avantage salarié (Benefit)
+API: GET /api/benefits
+  ID_AVANTAGE: INT PK
+  ID_PROFIL: INT FK TAB_PROFIL
+  AVA_TYPE: INT - type avantage
+  AVA_MONTANT: DECIMAL - montant
+  AVA_DEBUT: DATE
+  AVA_FIN: DATE
+  AVA_COMMENTAIRE: TEXT
+
+### TAB_NOTATION
+Description: Notation (évaluation)
+API: GET /api/evaluations
+  ID_NOTATION: INT PK
+  NOTE_VALEUR: DECIMAL - note
+  NOTE_DATE: DATE
+  NOTE_COMMENTAIRE: TEXT
+  NOTE_TYPE: INT
+  ID_PROFIL: INT FK TAB_PROFIL
+  ID_NOTEUR: INT FK TAB_PROFIL - évaluateur
+
+### TAB_OBJECTIF
+Description: Objectif (Goal)
+API: GET /api/goals
+  ID_OBJECTIF: INT PK
+  OBJ_TITRE: VARCHAR
+  OBJ_DESCRIPTION: TEXT
+  OBJ_DATE_DEBUT: DATE
+  OBJ_DATE_FIN: DATE
+  OBJ_ETAT: INT
+  OBJ_POIDS: DECIMAL - pondération
+  ID_PROFIL: INT FK TAB_PROFIL
+
+### TAB_DOCUMENT
+Description: Document (fichier attaché)
+API: GET /api/documents
+  ID_DOCUMENT: INT PK
+  DOC_NOM: VARCHAR - nom du fichier
+  DOC_TYPE: INT - type document
+  DOC_DATE: DATETIME - date upload
+  DOC_SIZE: INT - taille fichier
+  ID_PROFIL: INT FK TAB_PROFIL
+  ID_PROJET: INT FK TAB_PROJET
+
+### TAB_CV
+Description: CV (curriculum vitae d'une ressource/candidat)
+API: GET /api/resources/{id}/cv
+  ID_CV: INT PK
+  ID_PROFIL: INT FK TAB_PROFIL
+  CV_NOM: VARCHAR - nom du CV
+  CV_LANGUE: VARCHAR - langue
+  CV_DATE: DATETIME - date création
+
+### TAB_LOG
+Description: Journal d'audit (Audit Log)
+API: GET /api/logs
+  ID_LOG: INT PK
+  LOG_DATE: DATETIME
+  LOG_ACTION: VARCHAR - action effectuée
+  LOG_TYPE: VARCHAR - type d'entité
+  LOG_ID_OBJET: INT - ID objet modifié
+  LOG_BEFORE: TEXT - valeur avant
+  LOG_AFTER: TEXT - valeur après
+  ID_USER: INT FK TAB_USER - utilisateur
+
+### TAB_NOTIFICATION
+Description: Notification interne
+API: GET /api/notifications
+  ID_NOTIFICATION: INT PK
+  NOTIF_TITRE: VARCHAR
+  NOTIF_MESSAGE: TEXT
+  NOTIF_DATE: DATETIME
+  NOTIF_LU: TINYINT(1) - lue (1=oui)
+  ID_PROFIL: INT FK TAB_PROFIL - destinataire
+
+### TAB_WEBHOOK
+Description: Webhook (notification externe)
+API: GET /api/webhooks
+  ID_WEBHOOK: INT PK
+  WH_URL: VARCHAR - URL destination
+  WH_EVENTS: TEXT - événements déclencheurs
+  WH_ETAT: INT - actif/inactif
+  WH_SECRET: VARCHAR - secret HMAC
+  ID_SOCIETE: INT FK TAB_SOCIETE
+
+### TAB_PROVIDER_INVOICE
+Description: Facture fournisseur (e-invoicing entrant)
+API: GET /api/providerinvoices
+  ID_PROVIDER_INVOICE: INT PK
+  PINV_REF: VARCHAR - référence
+  PINV_DATE: DATE
+  PINV_TOTALHT: DECIMAL
+  PINV_TOTALTTC: DECIMAL
+  PINV_ETAT: INT
+  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - fournisseur
+  ID_ACHAT: INT FK TAB_ACHAT - achat associé
+
+### TAB_THREAD
+Description: Fil de discussion / Thread (messagerie interne)
+API: GET /api/threads
+  ID_THREAD: INT PK
+  THREAD_TITRE: VARCHAR
+  THREAD_DATE: DATETIME
+  THREAD_ETAT: INT
+  ID_PROFIL: INT FK TAB_PROFIL - auteur
+
+### TAB_REPARTPRODUCTION
+Description: Répartition de production (entre pôles/agences)
+API: (pas d'API directe)
+  ID_REPARTPRODUCTION: INT PK
+  REPART_TAUX: DECIMAL - taux %
+  ID_PROJET: INT FK TAB_PROJET
+  ID_POLE: INT FK TAB_POLE
+  ID_SOCIETE: INT FK TAB_SOCIETE
+
+### TAB_LISTEABSENCES
+Description: Soldes de congés (Leave Balance)
+API: GET /api/leavebalances
+  ID_LISTEABSENCES: INT PK
+  ID_PROFIL: INT FK TAB_PROFIL
+  LISTABS_TYPE: INT - type congé
+  LISTABS_SOLDE: DECIMAL - solde jours
+  LISTABS_ANNEE: INT
+
+### TAB_ABONNEMENT
+Description: Abonnement Boond (subscription)
+API: (pas d'API directe)
+  ID_ABONNEMENT: INT PK - identifiant unique
+  AB_DEBUT: DATE - date de début
+  AB_FIN: DATE - date de fin
+  AB_NBMANAGERS: INT - nb managers autorisés
+  AB_NBCOLLABORATEURS: INT - nb collaborateurs autorisés
+  AB_MAXRESSOURCESINTRANET: SMALLINT - nb ressources avec intranet actif
+  AB_TYPEFACTURATION: TINYINT - type facturation (0=custom,1=manager,2=resource...)
+  AB_TAUXREMISE: DECIMAL - taux remise managers
+  AB_QUOTA: JSON - quotas utilisés
+  AB_ADDITIONAL_PRODUCTS: TEXT - produits additionnels (ex: backupdatabase_1|ai_100)
+
+### TAB_BAREMEKM
+Description: Barème kilométrique
+API: (pas d'API directe)
+  ID_BAREMEKM: INT PK
+  BAREME_ANNEE: INT - année
+  BAREME_CV: INT - puissance fiscale
+  BAREME_TAUX: DECIMAL - taux €/km
+  ID_SOCIETE: INT FK TAB_SOCIETE
+
+### TAB_TYPEFRAIS
+Description: Type de frais (catégories dépenses)
+API: (pas d'API directe)
+  ID_TYPEFRAIS: INT PK
+  TYPEFRAIS_NOM: VARCHAR - nom
+  TYPEFRAIS_CODE: VARCHAR - code
+  TYPEFRAIS_KM: TINYINT(1) - frais kilométrique
+  ID_SOCIETE: INT FK TAB_SOCIETE
+
+### TAB_TYPEHEURE
+Description: Type d'heure / activité
+API: (pas d'API directe)
+  ID_TYPEHEURE: INT PK
+  TYPEH_NOM: VARCHAR - nom
+  TYPEH_REF: VARCHAR - référence
+  TYPEH_TYPEACTIVITE: INT - type (3,4=spécial agence)
+  ID_SOCIETE: INT FK TAB_SOCIETE
+
+### TAB_CALENDRIER
+Description: Calendrier de travail
+API: GET /api/calendars
+  ID_CALENDRIER: INT PK
+  CAL_NOM: VARCHAR - nom
+  CAL_ANNEE: INT - année
+  ID_SOCIETE: INT FK TAB_SOCIETE
+
+### TAB_BUSINESSUNIT
+Description: Business Unit
+API: GET /api/businessunits
+  ID_BUSINESSUNIT: INT PK
+  BU_NOM: VARCHAR - nom
+  BU_CODE: VARCHAR - code
+  ID_SOCIETE: INT FK TAB_SOCIETE
+
+### TAB_PRODUIT
+Description: Produit (catalogue)
+API: GET /api/products
+  ID_PRODUIT: INT PK
+  PRODUIT_NOM: VARCHAR - nom
+  PRODUIT_REF: VARCHAR - référence
+  PRODUIT_PRIXHT: DECIMAL - prix HT
+  PRODUIT_TAUXTVA: DECIMAL - taux TVA
+  PRODUIT_TYPE: INT - type
+  ID_SOCIETE: INT FK TAB_SOCIETE
+
+### TAB_ROLE
+Description: Rôle utilisateur (permissions)
+API: (pas d'API directe)
+  ID_ROLE: INT PK
+  ROLE_NOM: VARCHAR - nom du rôle
+  ROLE_PERMISSIONS: TEXT - permissions JSON
+
+### TAB_COORDONNEES
+Description: Coordonnées de facturation (billing address)
+API: (pas d'API directe)
+  ID_COORDONNEES: INT PK
+  COORD_NOM: VARCHAR - nom
+  COORD_ADR: VARCHAR
+  COORD_CP: CHAR(10)
+  COORD_VILLE: VARCHAR
+  COORD_PAYS: VARCHAR
+  COORD_EMAIL: VARCHAR
+  COORD_TEL: VARCHAR
+  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE
+
+### TAB_BANKING_ACCOUNT
+Description: Compte bancaire connecté
+API: (pas d'API directe)
+  ID_BANKING_ACCOUNT: INT PK
+  BANK_NOM: VARCHAR - nom compte
+  BANK_IBAN: VARCHAR - IBAN
+  BANK_SOLDE: DECIMAL - solde
+  BANK_DATE: DATETIME
+  ID_BANKING_CONNECTION: INT FK TAB_BANKING_CONNECTION
+
+### TAB_BANKING_TRANSACTION
+Description: Transaction bancaire
+API: (pas d'API directe)
+  ID_BANKING_TRANSACTION: INT PK
+  BANKTRANS_DATE: DATE
+  BANKTRANS_MONTANT: DECIMAL
+  BANKTRANS_LIBELLE: VARCHAR
+  BANKTRANS_TYPE: INT
+  ID_BANKING_ACCOUNT: INT FK TAB_BANKING_ACCOUNT
+
+### TAB_ESIGNATURE
+Description: Signature électronique
+API: GET /api/esignatures
+  ID_ESIGNATURE: INT PK
+  ESIGN_ETAT: INT - état
+  ESIGN_DATE: DATETIME
+  ESIGN_PROVIDER: VARCHAR - fournisseur (docusign, etc.)
+  ID_DOCUMENT: INT FK TAB_DOCUMENT
+
+### TAB_AIAGENT
+Description: Agent IA (BoondAI)
+API: GET /api/ai/agents
+  ID_AIAGENT: INT PK
+  AGENT_NOM: VARCHAR
+  AGENT_TYPE: VARCHAR
+  AGENT_CONFIG: JSON
+
+### TAB_VECTOR
+Description: Vecteur IA (embeddings pour recherche sémantique)
+API: (pas d'API directe)
+  ID_VECTOR: INT PK
+  VEC_TYPE: VARCHAR - type entité
+  VEC_ID_OBJET: INT
+  VEC_DATA: TEXT - vecteur sérialisé
+  VEC_DATE: DATETIME
+
+### TAB_FLAG
+Description: Flag / marqueur sur entité
+API: (pas d'API directe)
+  ID_FLAG: INT PK
+  FLAG_TYPE: VARCHAR - type entité
+  FLAG_ID_OBJET: INT
+  FLAG_COLOR: VARCHAR - couleur
+  ID_PROFIL: INT FK TAB_PROFIL
+
+### TAB_USERCONFIG
+Description: Configuration utilisateur (préférences UI)
+API: (pas d'API directe)
+  ID_USERCONFIG: INT PK
+  ID_USER: INT FK TAB_USER
+  USERCONF_KEY: VARCHAR - clé paramètre
+  USERCONF_VALUE: TEXT - valeur
+
+### TAB_MISSIONDETAILS
+Description: Détails d'une mission
+API: sous-ressource de MISSIONPROJET
+  ID_MISSIONDETAILS: INT PK
+  ID_MISSIONPROJET: INT FK TAB_MISSIONPROJET
+  MISSION_DEBUT: DATE - début période
+  MISSION_FIN: DATE - fin période
+  MISSION_TARIF: DECIMAL - tarif
+  MISSION_TYPE: INT - type
+
+### TAB_POSITIONDETAILS
+Description: Détails d'un positionnement
+API: sous-ressource de POSITIONNEMENT
+  ID_POSITIONDETAILS: INT PK
+  ID_POSITIONNEMENT: INT FK TAB_POSITIONNEMENT
+
+### TAB_TEMPSEXCEPTION
+Description: Temps exceptionnel
+API: sous-ressource de TEMPS
+  ID_TEMPSEXCEPTION: INT PK
+  ID_TEMPS: INT FK TAB_TEMPS
+  TEMPSEX_DATE: DATE
+  TEMPSEX_DUREE: DECIMAL
+  TEMPSEX_TYPE: INT
+  TEMPSEX_COMMENTAIRE: VARCHAR
+
+### TAB_FRAISREEL
+Description: Frais réels (Real Expense)
+API: GET /api/realexpenses
+  ID_FRAISREEL: INT PK
+  ID_PROFIL: INT FK TAB_PROFIL
+  FRAISREEL_DATE: DATE
+  FRAISREEL_MONTANTTTC: DECIMAL
+  FRAISREEL_TYPE: INT
+  FRAISREEL_ETAT: INT
+
+### TAB_FRAISDETAILS
+Description: Détails de frais
+API: (pas d'API directe)
+  ID_FRAISDETAILS: INT PK
+  ID_FRAIS: INT FK TAB_FRAIS
+
+### TAB_CAECHEANCIER
+Description: CA prévisionnel sur échéancier
+API: (pas d'API directe)
+  ID_CAECHEANCIER: INT PK
+  ID_ECHEANCIER: INT FK TAB_ECHEANCIER
+  CAECH_MOIS: INT
+  CAECH_ANNEE: INT
+  CAECH_MONTANT: DECIMAL
+
+### TAB_DT
+Description: Document Technique (Technical Document)
+API: GET /api/technicaldocuments
+  ID_DT: INT PK
+  ID_PROFIL: INT FK TAB_PROFIL
+  DT_NOM: VARCHAR - nom
+  DT_DATE: DATETIME
+
+### TAB_PAIEMENT
+Description: Paiement (d'une facture achat fournisseur)
+API: sous-ressource de achat
+  ID_PAIEMENT: INT PK
+  ID_ACHAT: INT FK TAB_ACHAT
+  PAIEMENT_DATE: DATE
+  PAIEMENT_MONTANT: DECIMAL
+  PAIEMENT_TYPE: INT
+
+### TAB_CALENDRIER_JOUR
+Description: Jour calendrier (jours ouvrés/fériés)
+API: (pas d'API directe)
+  ID_CALENDRIER_JOUR: INT PK
+  ID_CALENDRIER: INT FK TAB_CALENDRIER
+  CALJ_DATE: DATE
+  CALJ_TYPE: INT - type jour (travaillé, férié, etc.)
+  CALJ_DUREE: DECIMAL - durée en jours
+
+### TAB_WEBHOOK_EVENT
+Description: Événement webhook déclenché
+API: (pas d'API directe)
+  ID_WEBHOOK_EVENT: INT PK
+  ID_WEBHOOK: INT FK TAB_WEBHOOK
+  WHE_TYPE: VARCHAR - type événement
+  WHE_PAYLOAD: TEXT - payload JSON
+  WHE_DATE: DATETIME
+  WHE_ETAT: INT - succès/échec
+
+### TAB_TYPELIEU
+Description: Type de lieu (télétravail, client, etc.)
+API: (pas d'API directe)
+  ID_TYPELIEU: INT PK
+  TYPELIEU_NOM: VARCHAR
+  TYPELIEU_CODE: VARCHAR
+  ID_SOCIETE: INT FK TAB_SOCIETE
+
+### TAB_TYPEFACTURATION
+Description: Type de facturation
+API: (pas d'API directe)
+  ID_TYPEFACTURATION: INT PK
+  TYPEFACT_NOM: VARCHAR
+  TYPEFACT_MODE: INT - mode facturation
+  ID_SOCIETE: INT FK TAB_SOCIETE
+
+### TAB_TYPEDECOMPTE
+Description: Type de décompte (heure/jour)
+API: (pas d'API directe)
+  ID_TYPEDECOMPTE: INT PK
+  TYPEDC_NOM: VARCHAR
+  ID_SOCIETE: INT FK TAB_SOCIETE
+
+### TAB_TYPEAVANTAGE
+Description: Type d'avantage salarié
+API: (pas d'API directe)
+  ID_TYPEAVANTAGE: INT PK
+  TYPEAVA_NOM: VARCHAR
+  ID_SOCIETE: INT FK TAB_SOCIETE
+
+### TAB_SHARED_ENTITY
+Description: Entité partagée entre agences
+API: (pas d'API directe)
+  ID_SHARED_ENTITY: INT PK
+  SE_TYPE: VARCHAR - type d'entité
+  SE_ID_OBJET: INT - ID de l'objet partagé
+  ID_SOCIETE_SOURCE: INT FK TAB_SOCIETE
+  ID_SOCIETE_DEST: INT FK TAB_SOCIETE
+
+### TAB_ESIGNATURE_RECIPIENT
+Description: Destinataire d'une signature électronique
+API: (pas d'API directe)
+  ID_ESIGNATURE_RECIPIENT: INT PK
+  ID_ESIGNATURE: INT FK TAB_ESIGNATURE
+  ESIGNREC_NOM: VARCHAR
+  ESIGNREC_EMAIL: VARCHAR
+  ESIGNREC_ETAT: INT
+  ESIGNREC_DATE: DATETIME
+
+### TAB_BANKING_CONNECTION
+Description: Connexion bancaire (agrégateur)
+API: (pas d'API directe)
+  ID_BANKING_CONNECTION: INT PK
+  BANKCONN_PROVIDER: VARCHAR - fournisseur
+  BANKCONN_ETAT: INT
+  ID_SOCIETE: INT FK TAB_SOCIETE
+
+### TAB_FORM
+Description: Formulaire (Form)
+API: GET /api/forms
+  ID_FORM: INT PK
+  FORM_TITRE: VARCHAR
+  FORM_DATE: DATETIME
+  FORM_ETAT: INT
+  ID_PROFIL: INT FK TAB_PROFIL
+
+### TAB_AITHREAD
+Description: Conversation IA
+API: (pas d'API directe)
+  ID_AITHREAD: INT PK
+  ID_AIAGENT: INT FK TAB_AIAGENT
+  AITHREAD_DATE: DATETIME
+  ID_PROFIL: INT FK TAB_PROFIL
+
+### TAB_INFLUENCER
+Description: Influenceur (relation influençant une opportunité)
+API: (pas d'API directe)
+  ID_INFLUENCER: INT PK
+  INFL_ROLE: INT - rôle de l'influenceur
+  INFL_COMMENTAIRE: TEXT
+  ID_AO: INT FK TAB_AO
+  ID_CRMCONTACT: INT FK TAB_CRMCONTACT
+
+### TAB_LIGNETEMPSPLANIFIE
+Description: Ligne de temps planifié (Planned Time)
+API: (pas d'API directe)
+  ID_LIGNETEMPSPLANIFIE: INT PK
+  ID_PROJET: INT FK TAB_PROJET
+  ID_PROFIL: INT FK TAB_PROFIL
+  LIGNETPLAN_DATE: DATE
+  LIGNETPLAN_DUREE: DECIMAL
+  LIGNETPLAN_TYPE: INT
+
+### TAB_CORRELATIONBONDECOMMANDE
+Description: Corrélation BC / facture (mapping BC↔Facture)
+API: (pas d'API directe)
+  ID_CORRELATIONBONDECOMMANDE: INT PK
+  ID_BONDECOMMANDE: INT FK TAB_BONDECOMMANDE
+  ID_FACTURATION: INT FK TAB_FACTURATION
+  CORR_MONTANT: DECIMAL
+
+### TAB_BILLABLE_ITEM
+Description: Élément facturable générique
+API: (pas d'API directe)
+  ID_BILLABLE_ITEM: INT PK
+  BI_TYPE: VARCHAR - type (temps, frais, achat)
+  BI_ID_OBJET: INT - ID de l'objet
+  BI_ETAT: INT - état facturation
+  ID_FACTURATION: INT FK TAB_FACTURATION
+
+### TAB_CLOSED_PERIOD
+Description: Période clôturée (locked period)
+API: (pas d'API directe)
+  ID_CLOSED_PERIOD: INT PK
+  CP_MOIS: INT - mois
+  CP_ANNEE: INT - année
+  CP_TYPE: INT - type (temps, frais...)
+  ID_SOCIETE: INT FK TAB_SOCIETE
+
+### TAB_LOCK
+Description: Verrou optimiste (record lock)
+API: (pas d'API directe)
+  ID_LOCK: INT PK
+  LOCK_TYPE: VARCHAR - type d'entité
+  LOCK_ID_OBJET: INT
+  LOCK_DATE: DATETIME
+  ID_USER: INT FK TAB_USER
+
+### TAB_REGLEEXCEPTION
+Description: Règle d'exception (paie/temps)
+API: (pas d'API directe)
+  ID_REGLEEXCEPTION: INT PK
+  REGLE_NOM: VARCHAR
+  REGLE_TYPE: INT
+  REGLE_VALEUR: DECIMAL
+  ID_SOCIETE: INT FK TAB_SOCIETE
+
+### TAB_TEMPSPLANIFIE
+Description: Temps planifié (Planned Timesheet)
+API: (pas d'API directe)
+  ID_TEMPSPLANIFIE: INT PK
+  ID_PROFIL: INT FK TAB_PROFIL
+  TPLAN_MOIS: INT
+  TPLAN_ANNEE: INT
+  TPLAN_TOTALJ: DECIMAL
+
+### TAB_TEMPSLIEUX
+Description: Lieux de travail sur feuille de temps
+API: (pas d'API directe)
+  ID_TEMPSLIEUX: INT PK
+  ID_TEMPS: INT FK TAB_TEMPS
+  ID_TYPELIEU: INT FK TAB_TYPELIEU
+  TL_DATE: DATE
+  TL_DUREE: DECIMAL
+
+### TAB_USERFLAG
+Description: Flag utilisateur personnel
+API: (pas d'API directe)
+  ID_USERFLAG: INT PK
+  ID_USER: INT FK TAB_USER
+  FLAG_TYPE: VARCHAR
+  FLAG_ID_OBJET: INT
+
+
+
+=== REGLES API CRITIQUES ===
+- Recherche: toujours ?keywords=NOM&maxResults=N (pas keyWord, pas keyword)
+- Modifier responsable CONTACT → PUT /api/contacts/{id} body: {mainManagerId: ID}
+- Modifier responsable RESSOURCE → PUT /api/resources/{id} body: {mainManagerId: ID, hrManagerId: ID}
+- Modifier responsable PROJET → PUT /api/projects/{id} body: {mainManagerId: ID}
+- Modifier responsable SOCIÉTÉ → PUT /api/companies/{id} body: {mainManagerId: ID}
+- Modifier responsable OPPORTUNITE → PUT /api/opportunities/{id} body: {mainManagerId: ID}
+- Les IDs managers = ID_PROFIL (TAB_PROFIL), pas ID_USER
+- Format dates: YYYY-MM-DD
+- Méthode écriture: tester PUT puis PATCH puis POST si 405
+- États entités: integers définis dans /api/application/dictionary
+`;
 
   async function askClaude(userMessage) {
-    const systemPrompt = `Tu es un assistant expert de l ERP Boond Manager. Tu orchestres des appels API.
+    const systemPrompt = `Tu es un assistant expert de l'ERP Boond Manager avec une connaissance exhaustive de sa base de données et de son API REST.
 
-REGLE ABSOLUE : Tu reponds UNIQUEMENT avec un objet JSON valide. Aucun texte avant ou apres. Aucun backtick. Aucun markdown.
+REGLE ABSOLUE: Réponds UNIQUEMENT avec un objet JSON valide. Zéro texte avant/après. Zéro backtick. Zéro markdown.
 
-Endpoints disponibles :
-- GET /api/resources?maxResults=N&keyWord=NOM
-- GET /api/contacts?maxResults=N&keyWord=NOM
-- GET /api/projects?maxResults=N
-- GET /api/opportunities?maxResults=N
-- GET /api/companies?maxResults=N
-- GET /api/bills?maxResults=N
-- GET /api/candidates?maxResults=N
-- PATCH /api/contacts/{id}  (body: champs a modifier)
-- PATCH /api/resources/{id} (body: champs a modifier)
+${BOOND_SCHEMA}
 
-Action SIMPLE (1 seul appel API) :
-{"action":"api_call","method":"GET","endpoint":"/api/contacts?maxResults=5","explanation":"Je recupere les contacts"}
+=== FORMATS DE REPONSE ===
 
-Action COMPLEXE (plusieurs etapes) :
-{"action":"multi_step","steps":[{"method":"GET","endpoint":"/api/contacts?keyWord=MONTEL&maxResults=3","explanation":"Cherche MONTEL"},{"method":"GET","endpoint":"/api/resources?keyWord=SANCHEZ&maxResults=3","explanation":"Cherche SANCHEZ"}],"final_goal":"Mettre MONTEL sous responsabilite de SANCHEZ"}
+Lecture simple (1 appel GET):
+{"action":"api_call","method":"GET","endpoint":"/api/contacts?keywords=DUPONT&maxResults=5","explanation":"Recherche du contact DUPONT"}
 
-Reponse sans API :
-{"action":"answer","text":"Ta reponse ici"}`;
+Modification (PUT/PATCH avec auto-fallback):
+{"action":"write","endpoint":"/api/contacts/123","body":{"mainManagerId":456},"explanation":"Mise à jour responsable"}
 
-    const text = await callClaudeRaw(systemPrompt, userMessage, 1200);
-    try {
-      return extractJSON(text);
-    } catch(e) {
-      return { action: 'answer', text };
-    }
+Multi-étapes (plusieurs appels nécessaires):
+{"action":"multi_step","steps":[{"method":"GET","endpoint":"/api/contacts?keywords=MONTEL&maxResults=3","explanation":"Cherche MONTEL"},{"method":"GET","endpoint":"/api/resources?keywords=SANCHEZ&maxResults=3","explanation":"Cherche SANCHEZ"}],"final_goal":"Mettre MONTEL sous responsabilité SANCHEZ"}
+
+Réponse sans API:
+{"action":"answer","text":"Ta réponse ici"}`;
+
+    const text = await callClaudeRaw(systemPrompt, userMessage, 1500);
+    try { return extractJSON(text); }
+    catch(e) { return { action:'answer', text }; }
   }
 
   async function askClaudeFinalize(originalQuestion, stepsContext, finalGoal) {
-    const systemPrompt = `Tu es un assistant expert Boond Manager. Tu as execute plusieurs appels API pour accomplir une tache complexe.
+    const systemPrompt = `Tu es un assistant expert Boond Manager. Suite aux appels API exécutés, détermine la prochaine action.
 
-REGLE ABSOLUE : Tu reponds UNIQUEMENT avec un objet JSON valide. Aucun texte avant ou apres.
+REGLE ABSOLUE: Réponds UNIQUEMENT avec un objet JSON valide.
 
-Tu dois maintenant determiner l etape suivante ou indiquer que c est termine.
+${BOOND_SCHEMA}
 
-Si tu as besoin d un autre appel API (ex: maintenant que tu as les IDs, faire le PATCH) :
-{"action":"api_call","method":"PATCH","endpoint":"/api/contacts/123","body":{"responsibleId":456},"explanation":"Mise a jour du responsable"}
+Si besoin d'une modification maintenant que tu as les IDs:
+{"action":"write","endpoint":"/api/contacts/ID","body":{"mainManagerId":ID_MANAGER},"explanation":"Explication"}
 
-Si tout est accompli :
-{"action":"done","summary":"Ce qui a ete accompli"}
+Si tout est fait:
+{"action":"done","summary":"Résumé de ce qui a été fait"}
 
-Si tu ne peux pas continuer (donnee manquante) :
-{"action":"error","message":"Explique le probleme"}`;
+Si erreur/impossible:
+{"action":"error","message":"Explication du problème"}`;
 
-    const userContent = `Objectif : ${finalGoal}\n\nResultats des etapes precedentes :\n${stepsContext}`;
-    const text = await callClaudeRaw(systemPrompt, userContent, 800);
-    try {
-      return extractJSON(text);
-    } catch(e) {
-      return { action: 'done', summary: text };
-    }
+    const text = await callClaudeRaw(systemPrompt, `Objectif: ${finalGoal}\n\nRésultats obtenus:\n${stepsContext}`, 800);
+    try { return extractJSON(text); }
+    catch(e) { return { action:'done', summary: text }; }
   }
 
   async function summarize(question, result) {
     const snippet = JSON.stringify(result.data).slice(0, 2000);
-    const text = await callClaudeRaw(
-      'Tu es un assistant Boond Manager. Fais un resume clair et concis en francais (2-3 phrases max). Ne repete pas les donnees brutes, synthetise l info importante.',
-      `Question : "${question}"\n\nReponse API :\n${snippet}`,
-      400
-    );
-    return text || 'Donnees recues.';
+    return await callClaudeRaw(
+      'Tu es un assistant Boond Manager. Fais un résumé clair en français (2-4 phrases max). Synthétise l\'essentiel sans répéter les données brutes.',
+      `Question: "${question}"\n\nRéponse API (statut ${result.status}):\n${snippet}`,
+      500
+    ) || 'Données reçues.';
   }
 
-  // ── SYNTAXE JSON ──
   function syntaxHL(json) {
-    return json
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    return json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
       .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
         let c = 'json-number';
         if (/^"/.test(m)) c = /:$/.test(m) ? 'json-key' : 'json-string';
         else if (/true|false/.test(m)) c = 'json-bool';
-        return '<span class="' + c + '">' + m + '</span>';
+        return '<span class="'+c+'">'+m+'</span>';
       });
   }
 
-  // ── MESSAGES UI ──
   function addMessage(role, text, apiResult) {
     const welcome = document.getElementById('welcome');
     if (welcome) welcome.remove();
-
     const chat = document.getElementById('chat');
-    const div  = document.createElement('div');
-    div.className = 'message' + (role === 'user' ? ' user' : '');
-
+    const div = document.createElement('div');
+    div.className = 'message' + (role==='user' ? ' user' : '');
     const av = document.createElement('div');
-    av.className = role === 'user' ? 'avatar user-av' : 'avatar ai';
-    av.textContent = role === 'user' ? '👤' : 'AI';
-
+    av.className = role==='user' ? 'avatar user-av' : 'avatar ai';
+    av.textContent = role==='user' ? 'U' : 'AI';
     const bubble = document.createElement('div');
-    bubble.className = role === 'user' ? 'bubble user' : 'bubble ai';
-    bubble.innerHTML = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
-
+    bubble.className = role==='user' ? 'bubble user' : 'bubble ai';
+    bubble.innerHTML = text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>');
     if (apiResult) {
       const block = document.createElement('div');
       block.className = 'result-block';
       const statusColor = apiResult.ok ? 'var(--accent)' : 'var(--danger)';
-      block.innerHTML =
-        '<div class="result-block-header">' +
-          '<span style="color:' + statusColor + '">&#9679; ' + apiResult.status + '</span>' +
-          '<span>' + (apiResult.endpoint || '') + '</span>' +
-        '</div>' +
-        '<pre><code>' + syntaxHL(JSON.stringify(apiResult.data, null, 2)) + '</code></pre>';
+      block.innerHTML = '<div class="result-block-header"><span style="color:'+statusColor+'">● '+apiResult.status+'</span><span>'+(apiResult.endpoint||'')+'</span></div><pre><code>'+syntaxHL(JSON.stringify(apiResult.data, null, 2))+'</code></pre>';
       bubble.appendChild(block);
     }
-
     div.appendChild(av);
     div.appendChild(bubble);
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
-
-    chatHistory.push({ role: role === 'user' ? 'user' : 'assistant', content: text });
   }
 
   function setThinking(label) {
     let el = document.getElementById('thinking');
-    if (!el) {
-      const chat = document.getElementById('chat');
-      el = document.createElement('div');
-      el.id = 'thinking';
-      el.className = 'thinking';
-      chat.appendChild(el);
-    }
-    el.innerHTML = '<div class="dots"><span></span><span></span><span></span></div> <span>' + (label || 'Analyse en cours...') + '</span>';
+    if (!el) { el = document.createElement('div'); el.id='thinking'; el.className='thinking'; document.getElementById('chat').appendChild(el); }
+    el.innerHTML = '<div class="dots"><span></span><span></span><span></span></div> <span>'+(label||'Analyse...')+'</span>';
     document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight;
   }
+  function removeThinking() { document.getElementById('thinking')?.remove(); }
 
-  function removeThinking() {
-    document.getElementById('thinking')?.remove();
-  }
-
-  // ── ENVOI ──
   async function sendMessage() {
-    if (!isConnected) { alert('Configure et connecte les tokens d abord !'); return; }
-
+    if (!isConnected) { alert('Configure les tokens d\'abord !'); return; }
     const input = document.getElementById('user-input');
-    const msg   = input.value.trim();
+    const msg = input.value.trim();
     if (!msg) return;
-
     input.value = '';
     input.style.height = 'auto';
     document.getElementById('send-btn').disabled = true;
-
     addMessage('user', msg);
     setThinking('Analyse en cours...');
-
     try {
       const intent = await askClaude(msg);
       removeThinking();
 
-      // Reponse directe
       if (intent.action === 'answer') {
-        addMessage('ai', intent.text || 'Je ne sais pas repondre a ca.');
+        addMessage('ai', intent.text || 'Je ne sais pas répondre.');
 
-      // Appel simple
       } else if (intent.action === 'api_call') {
-        addMessage('ai', intent.explanation || 'Execution...');
+        addMessage('ai', intent.explanation || 'Exécution...');
         setThinking('Appel Boond...');
-        const result = await callBoond(intent.method || 'GET', intent.endpoint, intent.body);
+        const result = await callBoond(intent.method||'GET', intent.endpoint, intent.body);
         removeThinking();
-        setThinking('Synthese...');
+        setThinking('Synthèse...');
         const summary = await summarize(msg, result);
         removeThinking();
         addMessage('ai', summary, { ...result, endpoint: intent.endpoint });
 
-      // Action multi-etapes
-      } else if (intent.action === 'multi_step') {
-        addMessage('ai', 'Action complexe detectee — execution en ' + intent.steps.length + ' etapes...');
-        let stepsContext = '';
+      } else if (intent.action === 'write') {
+        addMessage('ai', intent.explanation || 'Modification en cours...');
+        setThinking('Modification Boond...');
+        const result = await callBoondAutoMethod(intent.endpoint, intent.body);
+        removeThinking();
+        setThinking('Synthèse...');
+        const summary = await summarize(msg, result);
+        removeThinking();
+        addMessage('ai', summary + (result.usedMethod ? `\n*(méthode utilisée: ${result.usedMethod})*` : ''), { ...result, endpoint: intent.endpoint });
 
+      } else if (intent.action === 'multi_step') {
+        addMessage('ai', `🔄 Action complexe — ${intent.steps.length} étapes nécessaires...`);
+        let stepsContext = '';
         for (let i = 0; i < intent.steps.length; i++) {
           const step = intent.steps[i];
-          setThinking('Etape ' + (i+1) + '/' + intent.steps.length + ' : ' + step.explanation);
-          const result = await callBoond(step.method || 'GET', step.endpoint, step.body);
+          setThinking(`Étape ${i+1}/${intent.steps.length}: ${step.explanation}`);
+          const result = await callBoond(step.method||'GET', step.endpoint, step.body);
           removeThinking();
-          stepsContext += 'Etape ' + (i+1) + ' (' + step.explanation + ') — Statut ' + result.status + ' :\n' + JSON.stringify(result.data).slice(0, 1000) + '\n\n';
-          addMessage('ai', 'Etape ' + (i+1) + ' : ' + step.explanation, { ...result, endpoint: step.endpoint });
+          stepsContext += `Étape ${i+1} (${step.explanation}) — statut ${result.status}:\n${JSON.stringify(result.data).slice(0,1500)}\n\n`;
+          addMessage('ai', `✓ Étape ${i+1}: ${step.explanation}`, { ...result, endpoint: step.endpoint });
         }
-
-        // Claude decide de la suite
         setThinking('Finalisation...');
         const next = await askClaudeFinalize(msg, stepsContext, intent.final_goal);
         removeThinking();
 
-        if (next.action === 'api_call') {
-          setThinking('Mise a jour...');
-          addMessage('ai', next.explanation || 'Application des modifications...');
-          const finalResult = await callBoond(next.method || 'PATCH', next.endpoint, next.body);
+        if (next.action === 'write' || next.action === 'api_call') {
+          addMessage('ai', next.explanation || 'Application des changements...');
+          setThinking('Application...');
+          const finalResult = next.action==='write'
+            ? await callBoondAutoMethod(next.endpoint, next.body)
+            : await callBoond(next.method||'GET', next.endpoint, next.body);
           removeThinking();
+          setThinking('Synthèse finale...');
           const summary = await summarize(msg, finalResult);
+          removeThinking();
           addMessage('ai', summary, { ...finalResult, endpoint: next.endpoint });
         } else if (next.action === 'done') {
-          addMessage('ai', next.summary || 'Action terminee avec succes.');
+          addMessage('ai', '✅ ' + (next.summary || 'Terminé avec succès.'));
         } else {
-          addMessage('ai', 'Probleme : ' + (next.message || 'Impossible de finaliser.'));
+          addMessage('ai', '⚠️ Problème: ' + (next.message || 'Impossible de finaliser.'));
         }
       }
-
     } catch(err) {
       removeThinking();
-      addMessage('ai', '<span style="color:var(--danger)">Erreur : ' + err.message + '</span>');
+      addMessage('ai', `❌ Erreur: ${err.message}`);
     }
-
     document.getElementById('send-btn').disabled = false;
   }
 
-  function usePrompt(text) {
-    const input = document.getElementById('user-input');
-    input.value = text;
-    autoResize(input);
-    input.focus();
-  }
-
-  function handleKey(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-  }
-
-  function autoResize(el) {
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-  }
-
-  function toggleConfig() {
-    const sb = document.getElementById('sidebar');
-    sb.style.display = sb.style.display === 'none' ? '' : 'none';
-  }
+  function usePrompt(text) { const i = document.getElementById('user-input'); i.value=text; autoResize(i); i.focus(); }
+  function handleKey(e) { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+  function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+  function toggleConfig() { const sb=document.getElementById('sidebar'); sb.style.display=sb.style.display==='none'?'':'none'; }
 </script>
 </body>
 </html>
