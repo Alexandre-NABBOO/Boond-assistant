@@ -529,10 +529,11 @@
 </div>
 
 <script>
-<script>
   let config = { clientToken:'', clientKey:'', userToken:'', claudeKey:'' };
   let isConnected = false;
-  let chatHistory = [];
+
+  // Schema BDD Boond complet (87 tables, 746 champs) - stocké en JSON pour eviter pb backticks
+  const BOOND_SCHEMA = JSON.parse("=== SCHEMA COMPLET BASE DE DONNEES BOOND MANAGER (87 tables) ===\n\n[TAB_CRMCONTACT] Contact CRM\n  API: GET/PUT /api/contacts, GET/PUT /api/contacts/{id} — Recherche: ?keywords=NOM&maxResults=N\n  ID_CRMCONTACT: INT PK - identifiant unique\n  CCON_NOM: VARCHAR(100) - nom\n  CCON_PRENOM: VARCHAR(100) - prénom\n  CCON_EMAIL: VARCHAR(100) - email 1\n  CCON_EMAIL2: VARCHAR(100) - email 2\n  CCON_EMAIL3: VARCHAR(100) - email 3\n  CCON_TEL1: CHAR(20) - téléphone 1\n  CCON_TEL2: CHAR(20) - téléphone 2\n  CCON_FAX: CHAR(20) - fax\n  CCON_FONCTION: VARCHAR(100) - fonction/poste\n  CCON_SERVICE: VARCHAR(100) - service/département\n  CCON_TYPE: INT - type (cf. data.setting.state.contact)\n  CCON_TYPES: TEXT - multi-types séparés |\n  CCON_TYPESOURCE: INT - type origine\n  CCON_SOURCE: VARCHAR(100) - détail origine\n  CCON_CIVILITE: INT - civilité\n  CCON_ADR: VARCHAR(250) - adresse\n  CCON_CP: CHAR(10) - code postal\n  CCON_VILLE: VARCHAR(100) - ville\n  CCON_PAYS: VARCHAR(100) - pays (défaut: France)\n  CCON_SUBDIVISION: VARCHAR(6) - sous-division ISO-3166-2\n  CCON_COMMENTAIRE: VARCHAR(250) - commentaires\n  CCON_OUTILS: TEXT - outils (tool1|tool2)\n  CCON_APPLICATIONS: TEXT - domaines activité\n  CCON_DATE: DATETIME - date création\n  CCON_DATEUPDATE: DATETIME - date mise à jour\n  CCON_DATELASTACTIVITY: DATETIME - dernière activité\n  CCON_ETATGDPR: TINYINT(1) - consentement RGPD\n  CCON_DATEGDPR: DATE - expiration RGPD\n  CCON_THUMBNAIL: VARCHAR(100) - photo\n  ID_PROFIL: INT FK TAB_PROFIL - responsable manager principal\n  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société associée\n  ID_POLE: INT FK TAB_POLE - pôle\n  ID_SOCIETE: INT FK TAB_SOCIETE - agence\n  ID_CREATOR: INT FK TAB_PROFIL - créateur\n\n[TAB_CRMSOCIETE] Société CRM (Company)\n  API: GET/PUT /api/companies, GET/PUT /api/companies/{id} — Recherche: ?keywords=NOM&maxResults=N\n  ID_CRMSOCIETE: INT PK - identifiant unique\n  CSOC_SOCIETE: VARCHAR(100) - nom de la société\n  CSOC_TYPE: INT - type (cf. data.setting.state.company)\n  CSOC_TYPESOURCE: INT - type origine\n  CSOC_SOURCE: VARCHAR(100) - détail origine\n  CSOC_SIREN: VARCHAR(100) - SIREN\n  CSOC_NIC: CHAR(5) - NIC\n  CSOC_NAF: VARCHAR(100) - code NAF/APE\n  CSOC_RCS: VARCHAR(100) - RCS\n  CSOC_TVA: VARCHAR(100) - numéro TVA\n  CSOC_STATUT: VARCHAR(100) - statut juridique\n  CSOC_EFFECTIF: INT(6) - effectif\n  CSOC_ADR: VARCHAR(250) - adresse\n  CSOC_CP: CHAR(10) - code postal\n  CSOC_VILLE: VARCHAR(100) - ville\n  CSOC_PAYS: VARCHAR(100) - pays\n  CSOC_SUBDIVISION: VARCHAR(6) - sous-division\n  CSOC_TEL: CHAR(20) - téléphone\n  CSOC_FAX: CHAR(20) - fax\n  CSOC_WEB: VARCHAR(100) - site web\n  CSOC_NUMERO: VARCHAR(250) - numéro fournisseur\n  CSOC_METIERS: TEXT - commentaires métiers\n  CSOC_INTERVENTION: TEXT - domaine d'expertise\n  CSOC_SERVICES: TEXT - services/depts (séparés |)\n  CSOC_DATE: DATETIME - date création\n  CSOC_DATEUPDATE: DATETIME - date mise à jour\n  CSOC_THUMBNAIL: VARCHAR(100) - logo\n  ID_PROFIL: INT FK TAB_PROFIL - responsable manager principal\n  ID_RESPSOC: INT FK TAB_CRMSOCIETE - société mère\n  ID_POLE: INT FK TAB_POLE - pôle\n  ID_SOCIETE: INT FK TAB_SOCIETE - agence\n  ID_CREATOR: INT FK TAB_PROFIL - créateur\n\n[TAB_PROFIL] Profil = Ressource ou Candidat\n  API: GET/PUT /api/resources, GET/PUT /api/resources/{id} | GET/PUT /api/candidates, GET/PUT /api/candidates/{id} — Recherche: ?keywords=NOM\n  ID_PROFIL: INT PK - identifiant unique\n  PROFIL_NOM: VARCHAR(100) - nom\n  PROFIL_PRENOM: VARCHAR(100) - prénom\n  PROFIL_EMAIL: VARCHAR(100) - email principal\n  PROFIL_EMAIL2: VARCHAR(100) - email 2\n  PROFIL_EMAIL3: VARCHAR(100) - email 3\n  PROFIL_TEL1: CHAR(20) - tél 1\n  PROFIL_TEL2: CHAR(20) - tél 2\n  PROFIL_TEL3: CHAR(20) - tél 3\n  PROFIL_FAX: CHAR(20) - fax\n  PROFIL_STATUT: VARCHAR(100) - fonction/titre (ressource) ou évaluation (candidat)\n  PROFIL_ETAT: INT - état ressource/candidat\n  PROFIL_MODEL: VARCHAR(50) - 'resource' ou 'candidate'\n  PROFIL_TYPE: INT - type (cf. data.setting.typeOf.resource) — CAUTION: 1=ressource externe\n  PROFIL_CIVILITE: INT - civilité\n  PROFIL_DATENAISSANCE: DATE - date de naissance\n  PROFIL_LIEUNAISSANCE: VARCHAR(100) - lieu de naissance\n  PROFIL_NATIONALITE: VARCHAR(100) - nationalité\n  PROFIL_NUMSECU: CHAR(21) - numéro sécu\n  PROFIL_SITUATION: INT - situation familiale\n  PROFIL_ADR: VARCHAR(250) - adresse\n  PROFIL_CP: CHAR(10) - code postal\n  PROFIL_VILLE: VARCHAR(100) - ville\n  PROFIL_PAYS: VARCHAR(100) - pays\n  PROFIL_SUBDIVISION: VARCHAR(6) - sous-division\n  PROFIL_REFERENCE: VARCHAR(250) - référence (ressource uniquement)\n  PROFIL_VISIBILITE: TINYINT(1) - visibilité (1=visible)\n  PROFIL_ALLOWCHANGE: TINYINT(1) - autorise modif TD depuis intranet (ressource)\n  PROFIL_DATE: DATETIME - date création\n  PROFIL_DATEUPDATE: DATETIME - date mise à jour\n  PROFIL_DATELASTACTIVITY: DATETIME - dernière activité\n  PROFIL_DDCA: DATE - date ancienneté\n  PROFIL_ETATGDPR: TINYINT(1) - consentement RGPD\n  PROFIL_THUMBNAIL: UNKNOWN - photo\n  PARAM_DATEDISPO: DATE - date de disponibilité\n  PARAM_TYPEDISPO: INT - type disponibilité (1-4 ressource, 9/-1 candidat)\n  PARAM_COMMENTAIRE: TEXT - commentaires info\n  PARAM_COMMENTAIRE2: TEXT - commentaires admin\n  PARAM_CJM_ACTUAL: DECIMAL - CJM actuel\n  PARAM_TARIF1: DECIMAL - TJM moyen HT (ressource) ou salaire actuel (candidat)\n  PARAM_TARIF2: DECIMAL - salaire min souhaité (candidat)\n  PARAM_TARIF3: DECIMAL - salaire max souhaité (candidat)\n  PARAM_CONTRAT: INT - type contrat (candidat)\n  PARAM_MOBILITE: TEXT - zone mobilité\n  PARAM_TYPESOURCE: INT - type source (candidat)\n  PARAM_SOURCE: VARCHAR(100) - détail source (candidat)\n  ID_RESPMANAGER: INT FK TAB_USER - responsable manager principal\n  ID_RESPRH: INT FK TAB_USER - responsable RH\n  ID_POLE: INT FK TAB_POLE - pôle\n  ID_SOCIETE: INT FK TAB_SOCIETE - agence\n  ID_CREATOR: INT FK TAB_PROFIL - créateur\n  ID_DT: INT FK TAB_DT - document technique\n  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact fournisseur (candidat/externe)\n  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société fournisseur (candidat/externe)\n  ID_EMBAUCHE: INT FK TAB_PROFIL - ressource issue de ce candidat\n\n[TAB_PROJET] Projet\n  API: GET/PUT /api/projects, GET/PUT /api/projects/{id} — Recherche: ?keywords=REF\n  ID_PROJET: INT PK - identifiant unique\n  PRJ_REFERENCE: VARCHAR(100) - référence projet\n  PRJ_ETAT: INT - état (cf. data.setting.state.project)\n  PRJ_TYPE: INT - mode (-1=abs inactif,-2=int inactif, cf. setting.typeOf.project)\n  PRJ_TYPEREF: INT - type projet\n  PRJ_DEBUT: DATE - date début\n  PRJ_FIN: DATE - date fin\n  PRJ_COMMENTAIRES: TEXT - commentaires\n  PRJ_TAUXHORAIRE: DECIMAL - taux unitaire\n  PRJ_TARIFADDITIONNEL: DECIMAL - CA additionnel\n  PRJ_INVESTISSEMENT: DECIMAL - coûts additionnels\n  PRJ_RESTEAFAIRE: DECIMAL - reste à faire (mode forfait)\n  PRJ_DEVISE: INT - devise\n  PRJ_CHANGE: DECIMAL - taux de change\n  PRJ_ADR: VARCHAR(250) - adresse livraison\n  PRJ_CP: CHAR(10) - CP livraison\n  PRJ_VILLE: VARCHAR(100) - ville livraison\n  PRJ_PAYS: VARCHAR(100) - pays livraison\n  PRJ_LOTSTAB: TINYINT(1) - afficher onglet lots\n  PRJ_DATE: DATETIME - date création\n  PRJ_DATEUPDATE: DATETIME - date mise à jour\n  PRJ_DATELASTACTIVITY: DATETIME - dernière activité\n  ID_PROFIL: INT FK TAB_PROFIL - responsable manager principal\n  ID_PROFILCDP: TINYTEXT - liste chefs de projet (IDs séparés |)\n  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société cliente\n  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact client\n  ID_CRMTECHNIQUE: INT FK TAB_CRMCONTACT - contact technique\n  ID_AO: INT FK TAB_AO - opportunité liée\n  ID_POLE: INT FK TAB_POLE - pôle\n  ID_SOCIETE: INT FK TAB_SOCIETE - agence\n\n[TAB_AO] Appel d'offres / Opportunité (Opportunity)\n  API: GET/PUT /api/opportunities, GET/PUT /api/opportunities/{id}\n  ID_AO: INT PK\n  AO_TITLE: VARCHAR(150) - titre\n  AO_REF: VARCHAR(250) - référence\n  AO_ETAT: INT - état (cf. data.setting.state.opportunity)\n  AO_DEBUT: DATE - date de début\n  AO_FIN: DATE - date de fin\n  AO_DATELIMITE: DATE - date limite\n  AO_DATECLOSING: DATE - date de closing\n  AO_TYPE: INT - mode (cf. data.setting.typeOf.project mode)\n  AO_TYPEREF: INT - type projet\n  AO_TYPESOURCE: INT - type origine\n  AO_SOURCE: VARCHAR - détail origine\n  AO_BUDGET: DECIMAL - budget estimé\n  AO_CA: DECIMAL - CA estimé\n  AO_TARIFADDITIONNEL: DECIMAL - CA additionnel\n  AO_INVESTISSEMENT: DECIMAL - coûts additionnels\n  AO_PROBA: TINYINT - pondération (probabilité %)\n  AO_FORCEPROBA: TINYINT(1) - forcer la proba manuellement\n  AO_DUREE: INT - durée\n  AO_TYPEDEBUT: TINYINT - type début (1=immédiat, 2=après date)\n  AO_DESCRIPTION: TEXT - description\n  AO_CRITERES: TEXT - critères\n  AO_OUTILS: TEXT - outils (tool1|level#tool2|level)\n  AO_APPLICATIONS: TEXT - domaines d'activité (cat|domain séparés |)\n  AO_INTERVENTION: TEXT - zone d'expertise\n  AO_LIEU: TEXT - lieu / mobilité\n  AO_TAUXHORAIRE: DECIMAL - taux unitaire\n  AO_VISIBILITE: TINYINT(1) - visibilité (1=visible)\n  AO_DEPOT: DATETIME - date création\n  AO_DATEUPDATE: DATETIME - date mise à jour\n  AO_DATELASTACTIVITY: DATETIME - dernière activité\n  ID_PROFIL: INT FK TAB_PROFIL - responsable principal\n  ID_PROFILRH: INT FK TAB_PROFIL - responsable RH\n  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société\n  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact\n  ID_POLE: INT FK TAB_POLE - pôle\n  ID_SOCIETE: INT FK TAB_SOCIETE - agence\n\n[TAB_FACTURATION] Facture / Invoice\n  API: GET/PUT /api/bills, GET/PUT /api/bills/{id}\n  ID_FACTURATION: INT PK\n  FACT_REF: VARCHAR(250) - référence\n  FACT_DATE: DATE - date de facturation\n  FACT_DEBUT: DATE - période début\n  FACT_FIN: DATE - période fin\n  FACT_ETAT: INT - état (cf. data.setting.state.invoice)\n  FACT_AVOIR: TINYINT(1) - avoir/credit note (1=oui)\n  FACT_CLOTURE: TINYINT(1) - clôturée (1=oui)\n  FACT_TOTALHT: DECIMAL - total HT\n  FACT_TOTALTTC: DECIMAL - total TTC\n  FACT_AMOUNT_PAYABLE: DECIMAL - montant restant à payer TTC\n  FACT_TAUXREMISE: DECIMAL - taux remise\n  FACT_TYPEPAYMENT: INT - moyen paiement\n  FACT_CONDREGLEMENT: TINYINT - conditions règlement\n  FACT_DATEREGLEMENTATTENDUE: DATE - date paiement attendue\n  FACT_DATEREGLEMENTRECUE: DATE - date paiement reçue\n  FACT_FORCEDATEREGLEMENTATTENDUE: TINYINT(1) - date paiement forcée\n  FACT_TYPE_OF: TINYINT - type contenu (0=all,1=temps,2=frais,3=achats...)\n  FACT_NATURE: TINYINT(1) - nature (0=service, 1=bien)\n  FACT_COMMENTAIRE: TEXT - commentaires\n  FACT_SHOWCOMMENTAIRE: TINYINT(1) - afficher commentaire sur PDF\n  FACT_ETAT_ENVOI: TINYINT(1) - état envoi\n  FACT_DEVISE: INT - devise\n  FACT_CHANGE: DECIMAL - taux de change\n  FACT_CREATEDAT: DATETIME - date création\n  FACT_UPDATEDAT: DATETIME - date MAJ\n  FACT_CC_NOM: VARCHAR(100) - nom société destinataire\n  FACT_CC_CONTACT: VARCHAR(200) - contact destinataire\n  FACT_CC_ADR1: VARCHAR(250) - adresse destinataire\n  FACT_CC_SIREN: VARCHAR(95) - SIREN destinataire\n  FACT_SOCIETE_RAISON: VARCHAR(100) - nom agence émettrice\n  FACT_SOCIETE_SIREN: VARCHAR(95) - SIREN agence\n  FACT_RIB_IBAN: CHAR(34) - IBAN\n  FACT_RIB_BIC: CHAR(11) - BIC\n  ID_BONDECOMMANDE: INT FK TAB_BONDECOMMANDE - bon de commande\n  ID_ECHEANCIER: INT FK TAB_ECHEANCIER - échéancier\n  ID_PARENT_FACTURATION: INT FK TAB_FACTURATION - facture parente (avoir)\n  ID_CREATOR: INT FK TAB_PROFIL - créateur\n\n[TAB_ACHAT] Achat / Purchase\n  API: GET/PUT /api/purchases, GET/PUT /api/purchases/{id}\n  ID_ACHAT: INT PK - identifiant unique\n  ACHAT_TITLE: VARCHAR(150) - titre\n  ACHAT_REF: VARCHAR(250) - référence\n  ACHAT_DATE: DATE - date\n  ACHAT_DEBUT: DATE - date début\n  ACHAT_FIN: DATE - date fin\n  ACHAT_ETAT: INT - état (cf. data.setting.state.purchase)\n  ACHAT_MONTANTHT: DECIMAL - montant HT\n  ACHAT_MONTANTTTC: DECIMAL - montant TTC\n  ACHAT_TOTALHT: DECIMAL - total HT\n  ACHAT_TOTALTTC: DECIMAL - total TTC\n  ACHAT_TAUXTVA: DECIMAL - taux TVA\n  ACHAT_QUANTITE: DECIMAL - quantité\n  ACHAT_TYPE: INT - type abonnement\n  ACHAT_CATEGORIE: INT - catégorie (cf. data.setting.typeOf.purchase)\n  ACHAT_TYPEPAYMENT: INT - moyen de paiement\n  ACHAT_CONDREGLEMENT: INT - conditions règlement\n  ACHAT_REFACTURE: TINYINT(1) - refacturable (0/1)\n  ACHAT_TARIFFACTURE: DECIMAL - prix refacturé HT\n  ACHAT_COMMENTAIRE: TEXT - commentaires\n  ID_PROJET: INT FK TAB_PROJET - projet associé\n  ID_PROFIL: INT FK TAB_PROFIL - responsable\n  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - fournisseur société\n  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - fournisseur contact\n  ID_POLE: INT FK TAB_POLE - pôle\n  ID_SOCIETE: INT FK TAB_SOCIETE - agence\n\n[TAB_BONDECOMMANDE] Bon de commande / Purchase Order\n  API: GET/PUT /api/orders, GET/PUT /api/orders/{id}\n  ID_BONDECOMMANDE: INT PK - identifiant unique\n  BC_REF: VARCHAR - référence\n  BC_DATE: DATE - date\n  BC_DEBUT: DATE - date début\n  BC_FIN: DATE - date fin\n  BC_ETAT: INT - état\n  BC_MONTANTHT: DECIMAL - montant HT\n  BC_MONTANTTTC: DECIMAL - montant TTC\n  BC_COMMENTAIRE: TEXT - commentaire\n  ID_PROJET: INT FK TAB_PROJET - projet\n  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société\n  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact\n  ID_PROFIL: INT FK TAB_PROFIL - responsable\n\n[TAB_DEVIS] Devis / Quotation\n  API: GET/PUT /api/quotations, GET/PUT /api/quotations/{id}\n  ID_DEVIS: INT PK - identifiant unique\n  DEVIS_REF: VARCHAR - référence\n  DEVIS_DATE: DATE - date\n  DEVIS_DEBUT: DATE - début validité\n  DEVIS_FIN: DATE - fin validité\n  DEVIS_ETAT: INT - état\n  DEVIS_TOTALHT: DECIMAL - total HT\n  DEVIS_TOTALTTC: DECIMAL - total TTC\n  DEVIS_TAUXREMISE: DECIMAL - taux remise\n  DEVIS_COMMENTAIRE: TEXT - commentaire\n  ID_PROJET: INT FK TAB_PROJET\n  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE\n  ID_CRMCONTACT: INT FK TAB_CRMCONTACT\n  ID_PROFIL: INT FK TAB_PROFIL - responsable\n\n[TAB_MISSIONPROJET] Mission sur un projet (lien projet/ressource)\n  API: GET /api/projects/{id}/missions, POST /api/projects/{id}/missions\n  ID_MISSIONPROJET: INT PK - identifiant unique\n  ID_PROJET: INT FK TAB_PROJET - projet\n  ID_PROFIL: INT FK TAB_PROFIL - ressource positionnée\n  MISSION_DEBUT: DATE - date début mission\n  MISSION_FIN: DATE - date fin mission\n  MISSION_ETAT: INT - état de la mission\n  MISSION_TARIFHT: DECIMAL - tarif journalier HT\n  MISSION_TYPE: INT - type mission\n  MISSION_COMMENTAIRE: TEXT - commentaire\n\n[TAB_POSITIONNEMENT] Positionnement (candidature d'une ressource/candidat sur une opportunité)\n  API: GET /api/positionings\n  ID_POSITIONNEMENT: INT PK - identifiant unique\n  ID_AO: INT FK TAB_AO - opportunité\n  ID_PROFIL: INT FK TAB_PROFIL - ressource/candidat\n  POS_ETAT: INT - état du positionnement\n  POS_DATE: DATETIME - date\n  POS_COMMENTAIRE: TEXT - commentaire\n  POS_TARIFHT: DECIMAL - tarif proposé\n\n[TAB_CONTRAT] Contrat de travail / Employment Contract\n  API: GET/PUT /api/contracts, GET/PUT /api/contracts/{id}\n  ID_CONTRAT: INT PK - identifiant unique\n  CONTRAT_TYPE: INT - type contrat (CDI, CDD, etc.)\n  CONTRAT_DEBUT: DATE - date début\n  CONTRAT_FIN: DATE - date fin\n  CONTRAT_ETAT: INT - état\n  CONTRAT_COMMENTAIRE: TEXT - commentaire\n  CONTRAT_SALAIRE: DECIMAL - salaire\n  CONTRAT_DUREEPREAV: INT - durée préavis\n  ID_PROFIL: INT FK TAB_PROFIL - ressource\n  ID_SOCIETE: INT FK TAB_SOCIETE - agence\n\n[TAB_TEMPS] Feuille de temps (Time Sheet header)\n  API: GET /api/times, GET /api/times/{id}\n  ID_TEMPS: INT PK - identifiant unique\n  ID_PROFIL: INT FK TAB_PROFIL - ressource\n  TEMPS_MOIS: INT - mois\n  TEMPS_ANNEE: INT - année\n  TEMPS_ETAT: INT - état de validation\n  TEMPS_TOTALH: DECIMAL - total heures\n  TEMPS_TOTALA: DECIMAL - total absences\n\n[TAB_LIGNETEMPS] Ligne de temps (Time Entry)\n  API: sous-ressource de TEMPS\n  ID_LIGNETEMPS: INT PK\n  ID_TEMPS: INT FK TAB_TEMPS\n  ID_PROJET: INT FK TAB_PROJET\n  LIGNETEMPS_DATE: DATE - date\n  LIGNETEMPS_DUREE: DECIMAL - durée (jours)\n  LIGNETEMPS_TYPE: INT - type heure\n  LIGNETEMPS_COMMENTAIRE: VARCHAR - commentaire\n\n[TAB_FRAIS] Note de frais (Expense Report header)\n  API: GET /api/expenses, GET /api/expenses/{id}\n  ID_FRAIS: INT PK - identifiant unique\n  ID_PROFIL: INT FK TAB_PROFIL - ressource\n  FRAIS_MOIS: INT - mois\n  FRAIS_ANNEE: INT - année\n  FRAIS_ETAT: INT - état validation\n  FRAIS_TOTALTTC: DECIMAL - total TTC\n  FRAIS_TOTALHT: DECIMAL - total HT\n\n[TAB_LIGNEFRAIS] Ligne de frais (Expense Line)\n  API: sous-ressource de FRAIS\n  ID_LIGNEFRAIS: INT PK\n  ID_FRAIS: INT FK TAB_FRAIS\n  ID_PROJET: INT FK TAB_PROJET\n  LIGNEFRAIS_DATE: DATE - date\n  LIGNEFRAIS_MONTANTTTC: DECIMAL - montant TTC\n  LIGNEFRAIS_MONTANTHT: DECIMAL - montant HT\n  LIGNEFRAIS_TAUXTVA: DECIMAL - taux TVA\n  LIGNEFRAIS_TYPE: INT - type frais\n  LIGNEFRAIS_COMMENTAIRE: VARCHAR - commentaire\n  LIGNEFRAIS_REFACTURE: TINYINT(1) - refacturable\n\n[TAB_PABSENCE] Période d'absence (Leave / Absence)\n  API: GET /api/absences\n  ID_PABSENCE: INT PK - identifiant unique\n  ID_PROFIL: INT FK TAB_PROFIL - ressource\n  PABS_DEBUT: DATE - date début\n  PABS_FIN: DATE - date fin\n  PABS_TYPE: INT - type absence\n  PABS_ETAT: INT - état validation\n  PABS_COMMENTAIRE: TEXT - commentaire\n  PABS_DUREE: DECIMAL - durée en jours\n\n[TAB_USER] Utilisateur Boond (accès manager/admin)\n  API: GET /api/users, GET /api/users/{id}\n  ID_USER: INT PK - identifiant unique\n  USER_LOGIN: VARCHAR - login\n  USER_EMAIL: VARCHAR - email\n  USER_NOM: VARCHAR - nom\n  USER_PRENOM: VARCHAR - prénom\n  USER_ROLE: INT - rôle\n  USER_ETAT: INT - état (actif/inactif)\n  USER_LASTCONNEXION: DATETIME - dernière connexion\n  ID_PROFIL: INT FK TAB_PROFIL - profil associé\n  ID_SOCIETE: INT FK TAB_SOCIETE - agence\n\n[TAB_POLE] Pôle / Division (business unit division)\n  API: GET /api/poles\n  ID_POLE: INT PK\n  POLE_NOM: VARCHAR - nom\n  POLE_CODE: VARCHAR - code\n  ID_SOCIETE: INT FK TAB_SOCIETE\n\n[TAB_ACTION] Action / CRM Action (emails, appels, rendez-vous...)\n  API: GET/POST /api/actions, GET/PUT /api/actions/{id}\n  ID_ACTION: INT PK - identifiant unique\n  ACTION_TITLE: VARCHAR - titre\n  ACTION_DATE: DATETIME - date\n  ACTION_DATEECHEANCE: DATETIME - date d'échéance\n  ACTION_TYPE: INT - type d'action (cf. data.setting.typeOf.action)\n  ACTION_ETAT: INT - état\n  ACTION_COMMENTAIRE: TEXT - commentaire / corps\n  ACTION_PRIORITE: INT - priorité\n  ID_PROFIL: INT FK TAB_PROFIL - responsable\n  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact CRM lié\n  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société liée\n  ID_AO: INT FK TAB_AO - opportunité liée\n  ID_PROJET: INT FK TAB_PROJET - projet lié\n  ID_POLE: INT FK TAB_POLE - pôle\n\n[TAB_TACHE] Tâche (Task)\n  API: GET /api/tasks\n  ID_TACHE: INT PK\n  TACHE_TITRE: VARCHAR - titre\n  TACHE_DESCRIPTION: TEXT\n  TACHE_DEBUT: DATE\n  TACHE_FIN: DATE\n  TACHE_ETAT: INT - état\n  TACHE_PRIORITE: INT - priorité\n  ID_PROFIL: INT FK TAB_PROFIL - assigné\n  ID_PROJET: INT FK TAB_PROJET\n\n[TAB_VALIDATION] Validation (workflow approval)\n  API: GET /api/validations\n  ID_VALIDATION: INT PK\n  VALID_TYPE: INT - type entité validée\n  VALID_ETAT: INT - état\n  VALID_DATE: DATETIME - date\n  VALID_COMMENTAIRE: TEXT\n  ID_PROFIL: INT FK TAB_PROFIL - valideur\n  ID_OBJET: INT - ID de l'objet validé\n\n[TAB_ECHEANCIER] Échéancier de facturation\n  API: GET /api/schedules\n  ID_ECHEANCIER: INT PK\n  ECH_REF: VARCHAR - référence\n  ECH_MONTANTHT: DECIMAL - montant HT\n  ECH_MONTANTTTC: DECIMAL - montant TTC\n  ECH_DATE: DATE - date\n  ID_PROJET: INT FK TAB_PROJET\n  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE\n  ID_BONDECOMMANDE: INT FK TAB_BONDECOMMANDE\n\n[TAB_LOT] Lot / batch (forfait de projet)\n  API: sous-ressource de projet\n  ID_LOT: INT PK\n  ID_PROJET: INT FK TAB_PROJET\n  LOT_TITRE: VARCHAR - titre\n  LOT_DEBUT: DATE - début\n  LOT_FIN: DATE - fin\n  LOT_BUDGET: DECIMAL - budget\n  LOT_CONSOMME: DECIMAL - consommé\n  LOT_RESTE: DECIMAL - reste à faire\n\n[TAB_JALON] Jalon / milestone\n  API: sous-ressource de projet ou lot\n  ID_JALON: INT PK\n  ID_PROJET: INT FK TAB_PROJET\n  ID_LOT: INT FK TAB_LOT\n  JAL_TITRE: VARCHAR\n  JAL_DATE: DATE\n  JAL_MONTANTHT: DECIMAL\n  JAL_ETAT: INT\n\n[TAB_FACTURATION_PAIEMENT] Paiement d'une facture client\n  API: (pas API directe)\n  ID_FACTURATION_PAIEMENT: INT PK\n  ID_FACTURATION: INT FK TAB_FACTURATION\n  FACTPAY_DATE: DATE\n  FACTPAY_MONTANT: DECIMAL\n  FACTPAY_TYPE: INT\n\n[TAB_ITEMFACTURE] Ligne d'une facture\n  API: sous-ressource de facture\n  ID_ITEMFACTURE: INT PK\n  ID_FACTURATION: INT FK TAB_FACTURATION\n  ITEMFACT_LIBELLE: VARCHAR - libellé\n  ITEMFACT_QUANTITE: DECIMAL\n  ITEMFACT_PRIXUNITHT: DECIMAL\n  ITEMFACT_TAUXTVA: DECIMAL\n  ITEMFACT_TOTALHT: DECIMAL\n  ITEMFACT_TOTALTTC: DECIMAL\n\n[TAB_ITEMDEVIS] Ligne d'un devis\n  API: sous-ressource de devis\n  ID_ITEMDEVIS: INT PK\n  ID_DEVIS: INT FK TAB_DEVIS\n  ITEMDEVIS_LIBELLE: VARCHAR\n  ITEMDEVIS_QUANTITE: DECIMAL\n  ITEMDEVIS_PRIXUNITHT: DECIMAL\n  ITEMDEVIS_TAUXTVA: DECIMAL\n  ITEMDEVIS_TOTALHT: DECIMAL\n\n[TAB_RIB] RIB / Coordonnées bancaires\n  API: sous-ressource de profil ou société\n  ID_RIB: INT PK\n  RIB_IBAN: CHAR(34) - IBAN\n  RIB_BIC: CHAR(11) - BIC/SWIFT\n  RIB_BANQUE: VARCHAR - nom banque\n  RIB_DESCRIPTION: TEXT\n  RIB_DEFAULT: TINYINT(1) - RIB par défaut\n  ID_PROFIL: INT FK TAB_PROFIL\n  ID_SOCIETE: INT FK TAB_SOCIETE\n\n[TAB_REFERENCE] Référence (expérience) d'une ressource\n  API: sous-ressource de profil\n  ID_REFERENCE: INT PK\n  ID_PROFIL: INT FK TAB_PROFIL\n  REF_TITRE: VARCHAR - titre du poste\n  REF_DESCRIPTION: TEXT\n  REF_DEBUT: DATE\n  REF_FIN: DATE\n  REF_CLIENT: VARCHAR - nom client\n  REF_TYPE: INT\n\n[TAB_AVANTAGE] Avantage salarié (Benefit)\n  API: GET /api/benefits\n  ID_AVANTAGE: INT PK\n  ID_PROFIL: INT FK TAB_PROFIL\n  AVA_TYPE: INT - type avantage\n  AVA_MONTANT: DECIMAL - montant\n  AVA_DEBUT: DATE\n  AVA_FIN: DATE\n  AVA_COMMENTAIRE: TEXT\n\n[TAB_NOTATION] Notation (évaluation)\n  API: GET /api/evaluations\n  ID_NOTATION: INT PK\n  NOTE_VALEUR: DECIMAL - note\n  NOTE_DATE: DATE\n  NOTE_COMMENTAIRE: TEXT\n  NOTE_TYPE: INT\n  ID_PROFIL: INT FK TAB_PROFIL\n  ID_NOTEUR: INT FK TAB_PROFIL - évaluateur\n\n[TAB_OBJECTIF] Objectif (Goal)\n  API: GET /api/goals\n  ID_OBJECTIF: INT PK\n  OBJ_TITRE: VARCHAR\n  OBJ_DESCRIPTION: TEXT\n  OBJ_DATE_DEBUT: DATE\n  OBJ_DATE_FIN: DATE\n  OBJ_ETAT: INT\n  OBJ_POIDS: DECIMAL - pondération\n  ID_PROFIL: INT FK TAB_PROFIL\n\n[TAB_DOCUMENT] Document (fichier attaché)\n  API: GET /api/documents\n  ID_DOCUMENT: INT PK\n  DOC_NOM: VARCHAR - nom du fichier\n  DOC_TYPE: INT - type document\n  DOC_DATE: DATETIME - date upload\n  DOC_SIZE: INT - taille fichier\n  ID_PROFIL: INT FK TAB_PROFIL\n  ID_PROJET: INT FK TAB_PROJET\n\n[TAB_CV] CV (curriculum vitae d'une ressource/candidat)\n  API: GET /api/resources/{id}/cv\n  ID_CV: INT PK\n  ID_PROFIL: INT FK TAB_PROFIL\n  CV_NOM: VARCHAR - nom du CV\n  CV_LANGUE: VARCHAR - langue\n  CV_DATE: DATETIME - date création\n\n[TAB_LOG] Journal d'audit (Audit Log)\n  API: GET /api/logs\n  ID_LOG: INT PK\n  LOG_DATE: DATETIME\n  LOG_ACTION: VARCHAR - action effectuée\n  LOG_TYPE: VARCHAR - type d'entité\n  LOG_ID_OBJET: INT - ID objet modifié\n  LOG_BEFORE: TEXT - valeur avant\n  LOG_AFTER: TEXT - valeur après\n  ID_USER: INT FK TAB_USER - utilisateur\n\n[TAB_NOTIFICATION] Notification interne\n  API: GET /api/notifications\n  ID_NOTIFICATION: INT PK\n  NOTIF_TITRE: VARCHAR\n  NOTIF_MESSAGE: TEXT\n  NOTIF_DATE: DATETIME\n  NOTIF_LU: TINYINT(1) - lue (1=oui)\n  ID_PROFIL: INT FK TAB_PROFIL - destinataire\n\n[TAB_WEBHOOK] Webhook (notification externe)\n  API: GET /api/webhooks\n  ID_WEBHOOK: INT PK\n  WH_URL: VARCHAR - URL destination\n  WH_EVENTS: TEXT - événements déclencheurs\n  WH_ETAT: INT - actif/inactif\n  WH_SECRET: VARCHAR - secret HMAC\n  ID_SOCIETE: INT FK TAB_SOCIETE\n\n[TAB_PROVIDER_INVOICE] Facture fournisseur (e-invoicing entrant)\n  API: GET /api/providerinvoices\n  ID_PROVIDER_INVOICE: INT PK\n  PINV_REF: VARCHAR - référence\n  PINV_DATE: DATE\n  PINV_TOTALHT: DECIMAL\n  PINV_TOTALTTC: DECIMAL\n  PINV_ETAT: INT\n  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - fournisseur\n  ID_ACHAT: INT FK TAB_ACHAT - achat associé\n\n[TAB_THREAD] Fil de discussion / Thread (messagerie interne)\n  API: GET /api/threads\n  ID_THREAD: INT PK\n  THREAD_TITRE: VARCHAR\n  THREAD_DATE: DATETIME\n  THREAD_ETAT: INT\n  ID_PROFIL: INT FK TAB_PROFIL - auteur\n\n[TAB_REPARTPRODUCTION] Répartition de production (entre pôles/agences)\n  API: (pas API directe)\n  ID_REPARTPRODUCTION: INT PK\n  REPART_TAUX: DECIMAL - taux %\n  ID_PROJET: INT FK TAB_PROJET\n  ID_POLE: INT FK TAB_POLE\n  ID_SOCIETE: INT FK TAB_SOCIETE\n\n[TAB_LISTEABSENCES] Soldes de congés (Leave Balance)\n  API: GET /api/leavebalances\n  ID_LISTEABSENCES: INT PK\n  ID_PROFIL: INT FK TAB_PROFIL\n  LISTABS_TYPE: INT - type congé\n  LISTABS_SOLDE: DECIMAL - solde jours\n  LISTABS_ANNEE: INT\n\n[TAB_ABONNEMENT] Abonnement Boond (subscription)\n  API: (pas API directe)\n  ID_ABONNEMENT: INT PK - identifiant unique\n  AB_DEBUT: DATE - date de début\n  AB_FIN: DATE - date de fin\n  AB_NBMANAGERS: INT - nb managers autorisés\n  AB_NBCOLLABORATEURS: INT - nb collaborateurs autorisés\n  AB_MAXRESSOURCESINTRANET: SMALLINT - nb ressources avec intranet actif\n  AB_TYPEFACTURATION: TINYINT - type facturation (0=custom,1=manager,2=resource...)\n  AB_TAUXREMISE: DECIMAL - taux remise managers\n  AB_QUOTA: JSON - quotas utilisés\n  AB_ADDITIONAL_PRODUCTS: TEXT - produits additionnels (ex: backupdatabase_1|ai_100)\n\n[TAB_BAREMEKM] Barème kilométrique\n  API: (pas API directe)\n  ID_BAREMEKM: INT PK\n  BAREME_ANNEE: INT - année\n  BAREME_CV: INT - puissance fiscale\n  BAREME_TAUX: DECIMAL - taux €/km\n  ID_SOCIETE: INT FK TAB_SOCIETE\n\n[TAB_TYPEFRAIS] Type de frais (catégories dépenses)\n  API: (pas API directe)\n  ID_TYPEFRAIS: INT PK\n  TYPEFRAIS_NOM: VARCHAR - nom\n  TYPEFRAIS_CODE: VARCHAR - code\n  TYPEFRAIS_KM: TINYINT(1) - frais kilométrique\n  ID_SOCIETE: INT FK TAB_SOCIETE\n\n[TAB_TYPEHEURE] Type d'heure / activité\n  API: (pas API directe)\n  ID_TYPEHEURE: INT PK\n  TYPEH_NOM: VARCHAR - nom\n  TYPEH_REF: VARCHAR - référence\n  TYPEH_TYPEACTIVITE: INT - type (3,4=spécial agence)\n  ID_SOCIETE: INT FK TAB_SOCIETE\n\n[TAB_CALENDRIER] Calendrier de travail\n  API: GET /api/calendars\n  ID_CALENDRIER: INT PK\n  CAL_NOM: VARCHAR - nom\n  CAL_ANNEE: INT - année\n  ID_SOCIETE: INT FK TAB_SOCIETE\n\n[TAB_BUSINESSUNIT] Business Unit\n  API: GET /api/businessunits\n  ID_BUSINESSUNIT: INT PK\n  BU_NOM: VARCHAR - nom\n  BU_CODE: VARCHAR - code\n  ID_SOCIETE: INT FK TAB_SOCIETE\n\n[TAB_PRODUIT] Produit (catalogue)\n  API: GET /api/products\n  ID_PRODUIT: INT PK\n  PRODUIT_NOM: VARCHAR - nom\n  PRODUIT_REF: VARCHAR - référence\n  PRODUIT_PRIXHT: DECIMAL - prix HT\n  PRODUIT_TAUXTVA: DECIMAL - taux TVA\n  PRODUIT_TYPE: INT - type\n  ID_SOCIETE: INT FK TAB_SOCIETE\n\n[TAB_ROLE] Rôle utilisateur (permissions)\n  API: (pas API directe)\n  ID_ROLE: INT PK\n  ROLE_NOM: VARCHAR - nom du rôle\n  ROLE_PERMISSIONS: TEXT - permissions JSON\n\n[TAB_COORDONNEES] Coordonnées de facturation (billing address)\n  API: (pas API directe)\n  ID_COORDONNEES: INT PK\n  COORD_NOM: VARCHAR - nom\n  COORD_ADR: VARCHAR\n  COORD_CP: CHAR(10)\n  COORD_VILLE: VARCHAR\n  COORD_PAYS: VARCHAR\n  COORD_EMAIL: VARCHAR\n  COORD_TEL: VARCHAR\n  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE\n\n[TAB_BANKING_ACCOUNT] Compte bancaire connecté\n  API: (pas API directe)\n  ID_BANKING_ACCOUNT: INT PK\n  BANK_NOM: VARCHAR - nom compte\n  BANK_IBAN: VARCHAR - IBAN\n  BANK_SOLDE: DECIMAL - solde\n  BANK_DATE: DATETIME\n  ID_BANKING_CONNECTION: INT FK TAB_BANKING_CONNECTION\n\n[TAB_BANKING_TRANSACTION] Transaction bancaire\n  API: (pas API directe)\n  ID_BANKING_TRANSACTION: INT PK\n  BANKTRANS_DATE: DATE\n  BANKTRANS_MONTANT: DECIMAL\n  BANKTRANS_LIBELLE: VARCHAR\n  BANKTRANS_TYPE: INT\n  ID_BANKING_ACCOUNT: INT FK TAB_BANKING_ACCOUNT\n\n[TAB_ESIGNATURE] Signature électronique\n  API: GET /api/esignatures\n  ID_ESIGNATURE: INT PK\n  ESIGN_ETAT: INT - état\n  ESIGN_DATE: DATETIME\n  ESIGN_PROVIDER: VARCHAR - fournisseur (docusign, etc.)\n  ID_DOCUMENT: INT FK TAB_DOCUMENT\n\n[TAB_AIAGENT] Agent IA (BoondAI)\n  API: GET /api/ai/agents\n  ID_AIAGENT: INT PK\n  AGENT_NOM: VARCHAR\n  AGENT_TYPE: VARCHAR\n  AGENT_CONFIG: JSON\n\n[TAB_VECTOR] Vecteur IA (embeddings pour recherche sémantique)\n  API: (pas API directe)\n  ID_VECTOR: INT PK\n  VEC_TYPE: VARCHAR - type entité\n  VEC_ID_OBJET: INT\n  VEC_DATA: TEXT - vecteur sérialisé\n  VEC_DATE: DATETIME\n\n[TAB_FLAG] Flag / marqueur sur entité\n  API: (pas API directe)\n  ID_FLAG: INT PK\n  FLAG_TYPE: VARCHAR - type entité\n  FLAG_ID_OBJET: INT\n  FLAG_COLOR: VARCHAR - couleur\n  ID_PROFIL: INT FK TAB_PROFIL\n\n[TAB_USERCONFIG] Configuration utilisateur (préférences UI)\n  API: (pas API directe)\n  ID_USERCONFIG: INT PK\n  ID_USER: INT FK TAB_USER\n  USERCONF_KEY: VARCHAR - clé paramètre\n  USERCONF_VALUE: TEXT - valeur\n\n[TAB_MISSIONDETAILS] Détails d'une mission\n  API: sous-ressource de MISSIONPROJET\n  ID_MISSIONDETAILS: INT PK\n  ID_MISSIONPROJET: INT FK TAB_MISSIONPROJET\n  MISSION_DEBUT: DATE - début période\n  MISSION_FIN: DATE - fin période\n  MISSION_TARIF: DECIMAL - tarif\n  MISSION_TYPE: INT - type\n\n[TAB_POSITIONDETAILS] Détails d'un positionnement\n  API: sous-ressource de POSITIONNEMENT\n  ID_POSITIONDETAILS: INT PK\n  ID_POSITIONNEMENT: INT FK TAB_POSITIONNEMENT\n\n[TAB_TEMPSEXCEPTION] Temps exceptionnel\n  API: sous-ressource de TEMPS\n  ID_TEMPSEXCEPTION: INT PK\n  ID_TEMPS: INT FK TAB_TEMPS\n  TEMPSEX_DATE: DATE\n  TEMPSEX_DUREE: DECIMAL\n  TEMPSEX_TYPE: INT\n  TEMPSEX_COMMENTAIRE: VARCHAR\n\n[TAB_FRAISREEL] Frais réels (Real Expense)\n  API: GET /api/realexpenses\n  ID_FRAISREEL: INT PK\n  ID_PROFIL: INT FK TAB_PROFIL\n  FRAISREEL_DATE: DATE\n  FRAISREEL_MONTANTTTC: DECIMAL\n  FRAISREEL_TYPE: INT\n  FRAISREEL_ETAT: INT\n\n[TAB_FRAISDETAILS] Détails de frais\n  API: (pas API directe)\n  ID_FRAISDETAILS: INT PK\n  ID_FRAIS: INT FK TAB_FRAIS\n\n[TAB_CAECHEANCIER] CA prévisionnel sur échéancier\n  API: (pas API directe)\n  ID_CAECHEANCIER: INT PK\n  ID_ECHEANCIER: INT FK TAB_ECHEANCIER\n  CAECH_MOIS: INT\n  CAECH_ANNEE: INT\n  CAECH_MONTANT: DECIMAL\n\n[TAB_DT] Document Technique (Technical Document)\n  API: GET /api/technicaldocuments\n  ID_DT: INT PK\n  ID_PROFIL: INT FK TAB_PROFIL\n  DT_NOM: VARCHAR - nom\n  DT_DATE: DATETIME\n\n[TAB_PAIEMENT] Paiement (d'une facture achat fournisseur)\n  API: sous-ressource de achat\n  ID_PAIEMENT: INT PK\n  ID_ACHAT: INT FK TAB_ACHAT\n  PAIEMENT_DATE: DATE\n  PAIEMENT_MONTANT: DECIMAL\n  PAIEMENT_TYPE: INT\n\n[TAB_CALENDRIER_JOUR] Jour calendrier (jours ouvrés/fériés)\n  API: (pas API directe)\n  ID_CALENDRIER_JOUR: INT PK\n  ID_CALENDRIER: INT FK TAB_CALENDRIER\n  CALJ_DATE: DATE\n  CALJ_TYPE: INT - type jour (travaillé, férié, etc.)\n  CALJ_DUREE: DECIMAL - durée en jours\n\n[TAB_WEBHOOK_EVENT] Événement webhook déclenché\n  API: (pas API directe)\n  ID_WEBHOOK_EVENT: INT PK\n  ID_WEBHOOK: INT FK TAB_WEBHOOK\n  WHE_TYPE: VARCHAR - type événement\n  WHE_PAYLOAD: TEXT - payload JSON\n  WHE_DATE: DATETIME\n  WHE_ETAT: INT - succès/échec\n\n[TAB_TYPELIEU] Type de lieu (télétravail, client, etc.)\n  API: (pas API directe)\n  ID_TYPELIEU: INT PK\n  TYPELIEU_NOM: VARCHAR\n  TYPELIEU_CODE: VARCHAR\n  ID_SOCIETE: INT FK TAB_SOCIETE\n\n[TAB_TYPEFACTURATION] Type de facturation\n  API: (pas API directe)\n  ID_TYPEFACTURATION: INT PK\n  TYPEFACT_NOM: VARCHAR\n  TYPEFACT_MODE: INT - mode facturation\n  ID_SOCIETE: INT FK TAB_SOCIETE\n\n[TAB_TYPEDECOMPTE] Type de décompte (heure/jour)\n  API: (pas API directe)\n  ID_TYPEDECOMPTE: INT PK\n  TYPEDC_NOM: VARCHAR\n  ID_SOCIETE: INT FK TAB_SOCIETE\n\n[TAB_TYPEAVANTAGE] Type d'avantage salarié\n  API: (pas API directe)\n  ID_TYPEAVANTAGE: INT PK\n  TYPEAVA_NOM: VARCHAR\n  ID_SOCIETE: INT FK TAB_SOCIETE\n\n[TAB_SHARED_ENTITY] Entité partagée entre agences\n  API: (pas API directe)\n  ID_SHARED_ENTITY: INT PK\n  SE_TYPE: VARCHAR - type d'entité\n  SE_ID_OBJET: INT - ID de l'objet partagé\n  ID_SOCIETE_SOURCE: INT FK TAB_SOCIETE\n  ID_SOCIETE_DEST: INT FK TAB_SOCIETE\n\n[TAB_ESIGNATURE_RECIPIENT] Destinataire d'une signature électronique\n  API: (pas API directe)\n  ID_ESIGNATURE_RECIPIENT: INT PK\n  ID_ESIGNATURE: INT FK TAB_ESIGNATURE\n  ESIGNREC_NOM: VARCHAR\n  ESIGNREC_EMAIL: VARCHAR\n  ESIGNREC_ETAT: INT\n  ESIGNREC_DATE: DATETIME\n\n[TAB_BANKING_CONNECTION] Connexion bancaire (agrégateur)\n  API: (pas API directe)\n  ID_BANKING_CONNECTION: INT PK\n  BANKCONN_PROVIDER: VARCHAR - fournisseur\n  BANKCONN_ETAT: INT\n  ID_SOCIETE: INT FK TAB_SOCIETE\n\n[TAB_FORM] Formulaire (Form)\n  API: GET /api/forms\n  ID_FORM: INT PK\n  FORM_TITRE: VARCHAR\n  FORM_DATE: DATETIME\n  FORM_ETAT: INT\n  ID_PROFIL: INT FK TAB_PROFIL\n\n[TAB_AITHREAD] Conversation IA\n  API: (pas API directe)\n  ID_AITHREAD: INT PK\n  ID_AIAGENT: INT FK TAB_AIAGENT\n  AITHREAD_DATE: DATETIME\n  ID_PROFIL: INT FK TAB_PROFIL\n\n[TAB_INFLUENCER] Influenceur (relation influençant une opportunité)\n  API: (pas API directe)\n  ID_INFLUENCER: INT PK\n  INFL_ROLE: INT - rôle de l'influenceur\n  INFL_COMMENTAIRE: TEXT\n  ID_AO: INT FK TAB_AO\n  ID_CRMCONTACT: INT FK TAB_CRMCONTACT\n\n[TAB_LIGNETEMPSPLANIFIE] Ligne de temps planifié (Planned Time)\n  API: (pas API directe)\n  ID_LIGNETEMPSPLANIFIE: INT PK\n  ID_PROJET: INT FK TAB_PROJET\n  ID_PROFIL: INT FK TAB_PROFIL\n  LIGNETPLAN_DATE: DATE\n  LIGNETPLAN_DUREE: DECIMAL\n  LIGNETPLAN_TYPE: INT\n\n[TAB_CORRELATIONBONDECOMMANDE] Corrélation BC / facture (mapping BC↔Facture)\n  API: (pas API directe)\n  ID_CORRELATIONBONDECOMMANDE: INT PK\n  ID_BONDECOMMANDE: INT FK TAB_BONDECOMMANDE\n  ID_FACTURATION: INT FK TAB_FACTURATION\n  CORR_MONTANT: DECIMAL\n\n[TAB_BILLABLE_ITEM] Élément facturable générique\n  API: (pas API directe)\n  ID_BILLABLE_ITEM: INT PK\n  BI_TYPE: VARCHAR - type (temps, frais, achat)\n  BI_ID_OBJET: INT - ID de l'objet\n  BI_ETAT: INT - état facturation\n  ID_FACTURATION: INT FK TAB_FACTURATION\n\n[TAB_CLOSED_PERIOD] Période clôturée (locked period)\n  API: (pas API directe)\n  ID_CLOSED_PERIOD: INT PK\n  CP_MOIS: INT - mois\n  CP_ANNEE: INT - année\n  CP_TYPE: INT - type (temps, frais...)\n  ID_SOCIETE: INT FK TAB_SOCIETE\n\n[TAB_LOCK] Verrou optimiste (record lock)\n  API: (pas API directe)\n  ID_LOCK: INT PK\n  LOCK_TYPE: VARCHAR - type d'entité\n  LOCK_ID_OBJET: INT\n  LOCK_DATE: DATETIME\n  ID_USER: INT FK TAB_USER\n\n[TAB_REGLEEXCEPTION] Règle d'exception (paie/temps)\n  API: (pas API directe)\n  ID_REGLEEXCEPTION: INT PK\n  REGLE_NOM: VARCHAR\n  REGLE_TYPE: INT\n  REGLE_VALEUR: DECIMAL\n  ID_SOCIETE: INT FK TAB_SOCIETE\n\n[TAB_TEMPSPLANIFIE] Temps planifié (Planned Timesheet)\n  API: (pas API directe)\n  ID_TEMPSPLANIFIE: INT PK\n  ID_PROFIL: INT FK TAB_PROFIL\n  TPLAN_MOIS: INT\n  TPLAN_ANNEE: INT\n  TPLAN_TOTALJ: DECIMAL\n\n[TAB_TEMPSLIEUX] Lieux de travail sur feuille de temps\n  API: (pas API directe)\n  ID_TEMPSLIEUX: INT PK\n  ID_TEMPS: INT FK TAB_TEMPS\n  ID_TYPELIEU: INT FK TAB_TYPELIEU\n  TL_DATE: DATE\n  TL_DUREE: DECIMAL\n\n[TAB_USERFLAG] Flag utilisateur personnel\n  API: (pas API directe)\n  ID_USERFLAG: INT PK\n  ID_USER: INT FK TAB_USER\n  FLAG_TYPE: VARCHAR\n  FLAG_ID_OBJET: INT\n\n=== REGLES API CRITIQUES ===\n- Recherche: ?keywords=NOM&maxResults=N (pas keyWord)\n- Modifier responsable CONTACT: PUT /api/contacts/{id} body: {mainManagerId: ID}\n- Modifier responsable RESSOURCE: PUT /api/resources/{id} body: {mainManagerId: ID}\n- Modifier responsable PROJET: PUT /api/projects/{id} body: {mainManagerId: ID}\n- Modifier responsable SOCIETE: PUT /api/companies/{id} body: {mainManagerId: ID}\n- Modifier responsable OPPORTUNITE: PUT /api/opportunities/{id} body: {mainManagerId: ID}\n- IDs managers = ID_PROFIL (TAB_PROFIL), pas ID_USER\n- Format dates: YYYY-MM-DD\n- Methode ecriture: tester PUT puis PATCH puis POST si 405\n- Etats entites: integers definis dans /api/application/dictionary");
 
   function saveConfig() {
     config.clientToken = document.getElementById('clientToken').value.trim();
@@ -544,8 +545,8 @@
     }
     isConnected = true;
     document.getElementById('status-dot').classList.add('connected');
-    document.getElementById('status-text').textContent = 'Connecté';
-    addMessage('ai', '✅ Configuration sauvegardée ! Je connais 87 tables Boond (746 champs). Pose-moi une question.');
+    document.getElementById('status-text').textContent = 'Connecte';
+    addMessage('ai', 'Configuration OK ! Je connais 87 tables Boond (746 champs). Pose-moi une question.');
   }
 
   function toBase64(obj) { return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
@@ -590,1138 +591,15 @@
     return d.content?.[0]?.text || '';
   }
 
-  const BOOND_SCHEMA = `
-=== SCHEMA COMPLET BASE DE DONNEES BOOND MANAGER (87 tables) ===
-
-### TAB_CRMCONTACT
-Description: Contact CRM
-API: GET/PUT /api/contacts, GET/PUT /api/contacts/{id} — Recherche: ?keywords=NOM&maxResults=N
-  ID_CRMCONTACT: INT PK - identifiant unique
-  CCON_NOM: VARCHAR(100) - nom
-  CCON_PRENOM: VARCHAR(100) - prénom
-  CCON_EMAIL: VARCHAR(100) - email 1
-  CCON_EMAIL2: VARCHAR(100) - email 2
-  CCON_EMAIL3: VARCHAR(100) - email 3
-  CCON_TEL1: CHAR(20) - téléphone 1
-  CCON_TEL2: CHAR(20) - téléphone 2
-  CCON_FAX: CHAR(20) - fax
-  CCON_FONCTION: VARCHAR(100) - fonction/poste
-  CCON_SERVICE: VARCHAR(100) - service/département
-  CCON_TYPE: INT - type (cf. data.setting.state.contact)
-  CCON_TYPES: TEXT - multi-types séparés |
-  CCON_TYPESOURCE: INT - type origine
-  CCON_SOURCE: VARCHAR(100) - détail origine
-  CCON_CIVILITE: INT - civilité
-  CCON_ADR: VARCHAR(250) - adresse
-  CCON_CP: CHAR(10) - code postal
-  CCON_VILLE: VARCHAR(100) - ville
-  CCON_PAYS: VARCHAR(100) - pays (défaut: France)
-  CCON_SUBDIVISION: VARCHAR(6) - sous-division ISO-3166-2
-  CCON_COMMENTAIRE: VARCHAR(250) - commentaires
-  CCON_OUTILS: TEXT - outils (tool1|tool2)
-  CCON_APPLICATIONS: TEXT - domaines activité
-  CCON_DATE: DATETIME - date création
-  CCON_DATEUPDATE: DATETIME - date mise à jour
-  CCON_DATELASTACTIVITY: DATETIME - dernière activité
-  CCON_ETATGDPR: TINYINT(1) - consentement RGPD
-  CCON_DATEGDPR: DATE - expiration RGPD
-  CCON_THUMBNAIL: VARCHAR(100) - photo
-  ID_PROFIL: INT FK TAB_PROFIL - responsable manager principal
-  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société associée
-  ID_POLE: INT FK TAB_POLE - pôle
-  ID_SOCIETE: INT FK TAB_SOCIETE - agence
-  ID_CREATOR: INT FK TAB_PROFIL - créateur
-
-### TAB_CRMSOCIETE
-Description: Société CRM (Company)
-API: GET/PUT /api/companies, GET/PUT /api/companies/{id} — Recherche: ?keywords=NOM&maxResults=N
-  ID_CRMSOCIETE: INT PK - identifiant unique
-  CSOC_SOCIETE: VARCHAR(100) - nom de la société
-  CSOC_TYPE: INT - type (cf. data.setting.state.company)
-  CSOC_TYPESOURCE: INT - type origine
-  CSOC_SOURCE: VARCHAR(100) - détail origine
-  CSOC_SIREN: VARCHAR(100) - SIREN
-  CSOC_NIC: CHAR(5) - NIC
-  CSOC_NAF: VARCHAR(100) - code NAF/APE
-  CSOC_RCS: VARCHAR(100) - RCS
-  CSOC_TVA: VARCHAR(100) - numéro TVA
-  CSOC_STATUT: VARCHAR(100) - statut juridique
-  CSOC_EFFECTIF: INT(6) - effectif
-  CSOC_ADR: VARCHAR(250) - adresse
-  CSOC_CP: CHAR(10) - code postal
-  CSOC_VILLE: VARCHAR(100) - ville
-  CSOC_PAYS: VARCHAR(100) - pays
-  CSOC_SUBDIVISION: VARCHAR(6) - sous-division
-  CSOC_TEL: CHAR(20) - téléphone
-  CSOC_FAX: CHAR(20) - fax
-  CSOC_WEB: VARCHAR(100) - site web
-  CSOC_NUMERO: VARCHAR(250) - numéro fournisseur
-  CSOC_METIERS: TEXT - commentaires métiers
-  CSOC_INTERVENTION: TEXT - domaine d'expertise
-  CSOC_SERVICES: TEXT - services/depts (séparés |)
-  CSOC_DATE: DATETIME - date création
-  CSOC_DATEUPDATE: DATETIME - date mise à jour
-  CSOC_THUMBNAIL: VARCHAR(100) - logo
-  ID_PROFIL: INT FK TAB_PROFIL - responsable manager principal
-  ID_RESPSOC: INT FK TAB_CRMSOCIETE - société mère
-  ID_POLE: INT FK TAB_POLE - pôle
-  ID_SOCIETE: INT FK TAB_SOCIETE - agence
-  ID_CREATOR: INT FK TAB_PROFIL - créateur
-
-### TAB_PROFIL
-Description: Profil = Ressource ou Candidat
-API: GET/PUT /api/resources, GET/PUT /api/resources/{id} | GET/PUT /api/candidates, GET/PUT /api/candidates/{id} — Recherche: ?keywords=NOM
-  ID_PROFIL: INT PK - identifiant unique
-  PROFIL_NOM: VARCHAR(100) - nom
-  PROFIL_PRENOM: VARCHAR(100) - prénom
-  PROFIL_EMAIL: VARCHAR(100) - email principal
-  PROFIL_EMAIL2: VARCHAR(100) - email 2
-  PROFIL_EMAIL3: VARCHAR(100) - email 3
-  PROFIL_TEL1: CHAR(20) - tél 1
-  PROFIL_TEL2: CHAR(20) - tél 2
-  PROFIL_TEL3: CHAR(20) - tél 3
-  PROFIL_FAX: CHAR(20) - fax
-  PROFIL_STATUT: VARCHAR(100) - fonction/titre (ressource) ou évaluation (candidat)
-  PROFIL_ETAT: INT - état ressource/candidat
-  PROFIL_MODEL: VARCHAR(50) - 'resource' ou 'candidate'
-  PROFIL_TYPE: INT - type (cf. data.setting.typeOf.resource) — CAUTION: 1=ressource externe
-  PROFIL_CIVILITE: INT - civilité
-  PROFIL_DATENAISSANCE: DATE - date de naissance
-  PROFIL_LIEUNAISSANCE: VARCHAR(100) - lieu de naissance
-  PROFIL_NATIONALITE: VARCHAR(100) - nationalité
-  PROFIL_NUMSECU: CHAR(21) - numéro sécu
-  PROFIL_SITUATION: INT - situation familiale
-  PROFIL_ADR: VARCHAR(250) - adresse
-  PROFIL_CP: CHAR(10) - code postal
-  PROFIL_VILLE: VARCHAR(100) - ville
-  PROFIL_PAYS: VARCHAR(100) - pays
-  PROFIL_SUBDIVISION: VARCHAR(6) - sous-division
-  PROFIL_REFERENCE: VARCHAR(250) - référence (ressource uniquement)
-  PROFIL_VISIBILITE: TINYINT(1) - visibilité (1=visible)
-  PROFIL_ALLOWCHANGE: TINYINT(1) - autorise modif TD depuis intranet (ressource)
-  PROFIL_DATE: DATETIME - date création
-  PROFIL_DATEUPDATE: DATETIME - date mise à jour
-  PROFIL_DATELASTACTIVITY: DATETIME - dernière activité
-  PROFIL_DDCA: DATE - date ancienneté
-  PROFIL_ETATGDPR: TINYINT(1) - consentement RGPD
-  PROFIL_THUMBNAIL: UNKNOWN - photo
-  PARAM_DATEDISPO: DATE - date de disponibilité
-  PARAM_TYPEDISPO: INT - type disponibilité (1-4 ressource, 9/-1 candidat)
-  PARAM_COMMENTAIRE: TEXT - commentaires info
-  PARAM_COMMENTAIRE2: TEXT - commentaires admin
-  PARAM_CJM_ACTUAL: DECIMAL - CJM actuel
-  PARAM_TARIF1: DECIMAL - TJM moyen HT (ressource) ou salaire actuel (candidat)
-  PARAM_TARIF2: DECIMAL - salaire min souhaité (candidat)
-  PARAM_TARIF3: DECIMAL - salaire max souhaité (candidat)
-  PARAM_CONTRAT: INT - type contrat (candidat)
-  PARAM_MOBILITE: TEXT - zone mobilité
-  PARAM_TYPESOURCE: INT - type source (candidat)
-  PARAM_SOURCE: VARCHAR(100) - détail source (candidat)
-  ID_RESPMANAGER: INT FK TAB_USER - responsable manager principal
-  ID_RESPRH: INT FK TAB_USER - responsable RH
-  ID_POLE: INT FK TAB_POLE - pôle
-  ID_SOCIETE: INT FK TAB_SOCIETE - agence
-  ID_CREATOR: INT FK TAB_PROFIL - créateur
-  ID_DT: INT FK TAB_DT - document technique
-  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact fournisseur (candidat/externe)
-  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société fournisseur (candidat/externe)
-  ID_EMBAUCHE: INT FK TAB_PROFIL - ressource issue de ce candidat
-
-### TAB_PROJET
-Description: Projet
-API: GET/PUT /api/projects, GET/PUT /api/projects/{id} — Recherche: ?keywords=REF
-  ID_PROJET: INT PK - identifiant unique
-  PRJ_REFERENCE: VARCHAR(100) - référence projet
-  PRJ_ETAT: INT - état (cf. data.setting.state.project)
-  PRJ_TYPE: INT - mode (-1=abs inactif,-2=int inactif, cf. setting.typeOf.project)
-  PRJ_TYPEREF: INT - type projet
-  PRJ_DEBUT: DATE - date début
-  PRJ_FIN: DATE - date fin
-  PRJ_COMMENTAIRES: TEXT - commentaires
-  PRJ_TAUXHORAIRE: DECIMAL - taux unitaire
-  PRJ_TARIFADDITIONNEL: DECIMAL - CA additionnel
-  PRJ_INVESTISSEMENT: DECIMAL - coûts additionnels
-  PRJ_RESTEAFAIRE: DECIMAL - reste à faire (mode forfait)
-  PRJ_DEVISE: INT - devise
-  PRJ_CHANGE: DECIMAL - taux de change
-  PRJ_ADR: VARCHAR(250) - adresse livraison
-  PRJ_CP: CHAR(10) - CP livraison
-  PRJ_VILLE: VARCHAR(100) - ville livraison
-  PRJ_PAYS: VARCHAR(100) - pays livraison
-  PRJ_LOTSTAB: TINYINT(1) - afficher onglet lots
-  PRJ_DATE: DATETIME - date création
-  PRJ_DATEUPDATE: DATETIME - date mise à jour
-  PRJ_DATELASTACTIVITY: DATETIME - dernière activité
-  ID_PROFIL: INT FK TAB_PROFIL - responsable manager principal
-  ID_PROFILCDP: TINYTEXT - liste chefs de projet (IDs séparés |)
-  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société cliente
-  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact client
-  ID_CRMTECHNIQUE: INT FK TAB_CRMCONTACT - contact technique
-  ID_AO: INT FK TAB_AO - opportunité liée
-  ID_POLE: INT FK TAB_POLE - pôle
-  ID_SOCIETE: INT FK TAB_SOCIETE - agence
-
-### TAB_AO
-Description: Appel d'offres / Opportunité (Opportunity)
-API: GET/PUT /api/opportunities, GET/PUT /api/opportunities/{id}
-  ID_AO: INT PK
-  AO_TITLE: VARCHAR(150) - titre
-  AO_REF: VARCHAR(250) - référence
-  AO_ETAT: INT - état (cf. data.setting.state.opportunity)
-  AO_DEBUT: DATE - date de début
-  AO_FIN: DATE - date de fin
-  AO_DATELIMITE: DATE - date limite
-  AO_DATECLOSING: DATE - date de closing
-  AO_TYPE: INT - mode (cf. data.setting.typeOf.project mode)
-  AO_TYPEREF: INT - type projet
-  AO_TYPESOURCE: INT - type origine
-  AO_SOURCE: VARCHAR - détail origine
-  AO_BUDGET: DECIMAL - budget estimé
-  AO_CA: DECIMAL - CA estimé
-  AO_TARIFADDITIONNEL: DECIMAL - CA additionnel
-  AO_INVESTISSEMENT: DECIMAL - coûts additionnels
-  AO_PROBA: TINYINT - pondération (probabilité %)
-  AO_FORCEPROBA: TINYINT(1) - forcer la proba manuellement
-  AO_DUREE: INT - durée
-  AO_TYPEDEBUT: TINYINT - type début (1=immédiat, 2=après date)
-  AO_DESCRIPTION: TEXT - description
-  AO_CRITERES: TEXT - critères
-  AO_OUTILS: TEXT - outils (tool1|level#tool2|level)
-  AO_APPLICATIONS: TEXT - domaines d'activité (cat|domain séparés |)
-  AO_INTERVENTION: TEXT - zone d'expertise
-  AO_LIEU: TEXT - lieu / mobilité
-  AO_TAUXHORAIRE: DECIMAL - taux unitaire
-  AO_VISIBILITE: TINYINT(1) - visibilité (1=visible)
-  AO_DEPOT: DATETIME - date création
-  AO_DATEUPDATE: DATETIME - date mise à jour
-  AO_DATELASTACTIVITY: DATETIME - dernière activité
-  ID_PROFIL: INT FK TAB_PROFIL - responsable principal
-  ID_PROFILRH: INT FK TAB_PROFIL - responsable RH
-  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société
-  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact
-  ID_POLE: INT FK TAB_POLE - pôle
-  ID_SOCIETE: INT FK TAB_SOCIETE - agence
-
-### TAB_FACTURATION
-Description: Facture / Invoice
-API: GET/PUT /api/bills, GET/PUT /api/bills/{id}
-  ID_FACTURATION: INT PK
-  FACT_REF: VARCHAR(250) - référence
-  FACT_DATE: DATE - date de facturation
-  FACT_DEBUT: DATE - période début
-  FACT_FIN: DATE - période fin
-  FACT_ETAT: INT - état (cf. data.setting.state.invoice)
-  FACT_AVOIR: TINYINT(1) - avoir/credit note (1=oui)
-  FACT_CLOTURE: TINYINT(1) - clôturée (1=oui)
-  FACT_TOTALHT: DECIMAL - total HT
-  FACT_TOTALTTC: DECIMAL - total TTC
-  FACT_AMOUNT_PAYABLE: DECIMAL - montant restant à payer TTC
-  FACT_TAUXREMISE: DECIMAL - taux remise
-  FACT_TYPEPAYMENT: INT - moyen paiement
-  FACT_CONDREGLEMENT: TINYINT - conditions règlement
-  FACT_DATEREGLEMENTATTENDUE: DATE - date paiement attendue
-  FACT_DATEREGLEMENTRECUE: DATE - date paiement reçue
-  FACT_FORCEDATEREGLEMENTATTENDUE: TINYINT(1) - date paiement forcée
-  FACT_TYPE_OF: TINYINT - type contenu (0=all,1=temps,2=frais,3=achats...)
-  FACT_NATURE: TINYINT(1) - nature (0=service, 1=bien)
-  FACT_COMMENTAIRE: TEXT - commentaires
-  FACT_SHOWCOMMENTAIRE: TINYINT(1) - afficher commentaire sur PDF
-  FACT_ETAT_ENVOI: TINYINT(1) - état envoi
-  FACT_DEVISE: INT - devise
-  FACT_CHANGE: DECIMAL - taux de change
-  FACT_CREATEDAT: DATETIME - date création
-  FACT_UPDATEDAT: DATETIME - date MAJ
-  FACT_CC_NOM: VARCHAR(100) - nom société destinataire
-  FACT_CC_CONTACT: VARCHAR(200) - contact destinataire
-  FACT_CC_ADR1: VARCHAR(250) - adresse destinataire
-  FACT_CC_SIREN: VARCHAR(95) - SIREN destinataire
-  FACT_SOCIETE_RAISON: VARCHAR(100) - nom agence émettrice
-  FACT_SOCIETE_SIREN: VARCHAR(95) - SIREN agence
-  FACT_RIB_IBAN: CHAR(34) - IBAN
-  FACT_RIB_BIC: CHAR(11) - BIC
-  ID_BONDECOMMANDE: INT FK TAB_BONDECOMMANDE - bon de commande
-  ID_ECHEANCIER: INT FK TAB_ECHEANCIER - échéancier
-  ID_PARENT_FACTURATION: INT FK TAB_FACTURATION - facture parente (avoir)
-  ID_CREATOR: INT FK TAB_PROFIL - créateur
-
-### TAB_ACHAT
-Description: Achat / Purchase
-API: GET/PUT /api/purchases, GET/PUT /api/purchases/{id}
-  ID_ACHAT: INT PK - identifiant unique
-  ACHAT_TITLE: VARCHAR(150) - titre
-  ACHAT_REF: VARCHAR(250) - référence
-  ACHAT_DATE: DATE - date
-  ACHAT_DEBUT: DATE - date début
-  ACHAT_FIN: DATE - date fin
-  ACHAT_ETAT: INT - état (cf. data.setting.state.purchase)
-  ACHAT_MONTANTHT: DECIMAL - montant HT
-  ACHAT_MONTANTTTC: DECIMAL - montant TTC
-  ACHAT_TOTALHT: DECIMAL - total HT
-  ACHAT_TOTALTTC: DECIMAL - total TTC
-  ACHAT_TAUXTVA: DECIMAL - taux TVA
-  ACHAT_QUANTITE: DECIMAL - quantité
-  ACHAT_TYPE: INT - type abonnement
-  ACHAT_CATEGORIE: INT - catégorie (cf. data.setting.typeOf.purchase)
-  ACHAT_TYPEPAYMENT: INT - moyen de paiement
-  ACHAT_CONDREGLEMENT: INT - conditions règlement
-  ACHAT_REFACTURE: TINYINT(1) - refacturable (0/1)
-  ACHAT_TARIFFACTURE: DECIMAL - prix refacturé HT
-  ACHAT_COMMENTAIRE: TEXT - commentaires
-  ID_PROJET: INT FK TAB_PROJET - projet associé
-  ID_PROFIL: INT FK TAB_PROFIL - responsable
-  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - fournisseur société
-  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - fournisseur contact
-  ID_POLE: INT FK TAB_POLE - pôle
-  ID_SOCIETE: INT FK TAB_SOCIETE - agence
-
-### TAB_BONDECOMMANDE
-Description: Bon de commande / Purchase Order
-API: GET/PUT /api/orders, GET/PUT /api/orders/{id}
-  ID_BONDECOMMANDE: INT PK - identifiant unique
-  BC_REF: VARCHAR - référence
-  BC_DATE: DATE - date
-  BC_DEBUT: DATE - date début
-  BC_FIN: DATE - date fin
-  BC_ETAT: INT - état
-  BC_MONTANTHT: DECIMAL - montant HT
-  BC_MONTANTTTC: DECIMAL - montant TTC
-  BC_COMMENTAIRE: TEXT - commentaire
-  ID_PROJET: INT FK TAB_PROJET - projet
-  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société
-  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact
-  ID_PROFIL: INT FK TAB_PROFIL - responsable
-
-### TAB_DEVIS
-Description: Devis / Quotation
-API: GET/PUT /api/quotations, GET/PUT /api/quotations/{id}
-  ID_DEVIS: INT PK - identifiant unique
-  DEVIS_REF: VARCHAR - référence
-  DEVIS_DATE: DATE - date
-  DEVIS_DEBUT: DATE - début validité
-  DEVIS_FIN: DATE - fin validité
-  DEVIS_ETAT: INT - état
-  DEVIS_TOTALHT: DECIMAL - total HT
-  DEVIS_TOTALTTC: DECIMAL - total TTC
-  DEVIS_TAUXREMISE: DECIMAL - taux remise
-  DEVIS_COMMENTAIRE: TEXT - commentaire
-  ID_PROJET: INT FK TAB_PROJET
-  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE
-  ID_CRMCONTACT: INT FK TAB_CRMCONTACT
-  ID_PROFIL: INT FK TAB_PROFIL - responsable
-
-### TAB_MISSIONPROJET
-Description: Mission sur un projet (lien projet/ressource)
-API: GET /api/projects/{id}/missions, POST /api/projects/{id}/missions
-  ID_MISSIONPROJET: INT PK - identifiant unique
-  ID_PROJET: INT FK TAB_PROJET - projet
-  ID_PROFIL: INT FK TAB_PROFIL - ressource positionnée
-  MISSION_DEBUT: DATE - date début mission
-  MISSION_FIN: DATE - date fin mission
-  MISSION_ETAT: INT - état de la mission
-  MISSION_TARIFHT: DECIMAL - tarif journalier HT
-  MISSION_TYPE: INT - type mission
-  MISSION_COMMENTAIRE: TEXT - commentaire
-
-### TAB_POSITIONNEMENT
-Description: Positionnement (candidature d'une ressource/candidat sur une opportunité)
-API: GET /api/positionings
-  ID_POSITIONNEMENT: INT PK - identifiant unique
-  ID_AO: INT FK TAB_AO - opportunité
-  ID_PROFIL: INT FK TAB_PROFIL - ressource/candidat
-  POS_ETAT: INT - état du positionnement
-  POS_DATE: DATETIME - date
-  POS_COMMENTAIRE: TEXT - commentaire
-  POS_TARIFHT: DECIMAL - tarif proposé
-
-### TAB_CONTRAT
-Description: Contrat de travail / Employment Contract
-API: GET/PUT /api/contracts, GET/PUT /api/contracts/{id}
-  ID_CONTRAT: INT PK - identifiant unique
-  CONTRAT_TYPE: INT - type contrat (CDI, CDD, etc.)
-  CONTRAT_DEBUT: DATE - date début
-  CONTRAT_FIN: DATE - date fin
-  CONTRAT_ETAT: INT - état
-  CONTRAT_COMMENTAIRE: TEXT - commentaire
-  CONTRAT_SALAIRE: DECIMAL - salaire
-  CONTRAT_DUREEPREAV: INT - durée préavis
-  ID_PROFIL: INT FK TAB_PROFIL - ressource
-  ID_SOCIETE: INT FK TAB_SOCIETE - agence
-
-### TAB_TEMPS
-Description: Feuille de temps (Time Sheet header)
-API: GET /api/times, GET /api/times/{id}
-  ID_TEMPS: INT PK - identifiant unique
-  ID_PROFIL: INT FK TAB_PROFIL - ressource
-  TEMPS_MOIS: INT - mois
-  TEMPS_ANNEE: INT - année
-  TEMPS_ETAT: INT - état de validation
-  TEMPS_TOTALH: DECIMAL - total heures
-  TEMPS_TOTALA: DECIMAL - total absences
-
-### TAB_LIGNETEMPS
-Description: Ligne de temps (Time Entry)
-API: sous-ressource de TEMPS
-  ID_LIGNETEMPS: INT PK
-  ID_TEMPS: INT FK TAB_TEMPS
-  ID_PROJET: INT FK TAB_PROJET
-  LIGNETEMPS_DATE: DATE - date
-  LIGNETEMPS_DUREE: DECIMAL - durée (jours)
-  LIGNETEMPS_TYPE: INT - type heure
-  LIGNETEMPS_COMMENTAIRE: VARCHAR - commentaire
-
-### TAB_FRAIS
-Description: Note de frais (Expense Report header)
-API: GET /api/expenses, GET /api/expenses/{id}
-  ID_FRAIS: INT PK - identifiant unique
-  ID_PROFIL: INT FK TAB_PROFIL - ressource
-  FRAIS_MOIS: INT - mois
-  FRAIS_ANNEE: INT - année
-  FRAIS_ETAT: INT - état validation
-  FRAIS_TOTALTTC: DECIMAL - total TTC
-  FRAIS_TOTALHT: DECIMAL - total HT
-
-### TAB_LIGNEFRAIS
-Description: Ligne de frais (Expense Line)
-API: sous-ressource de FRAIS
-  ID_LIGNEFRAIS: INT PK
-  ID_FRAIS: INT FK TAB_FRAIS
-  ID_PROJET: INT FK TAB_PROJET
-  LIGNEFRAIS_DATE: DATE - date
-  LIGNEFRAIS_MONTANTTTC: DECIMAL - montant TTC
-  LIGNEFRAIS_MONTANTHT: DECIMAL - montant HT
-  LIGNEFRAIS_TAUXTVA: DECIMAL - taux TVA
-  LIGNEFRAIS_TYPE: INT - type frais
-  LIGNEFRAIS_COMMENTAIRE: VARCHAR - commentaire
-  LIGNEFRAIS_REFACTURE: TINYINT(1) - refacturable
-
-### TAB_PABSENCE
-Description: Période d'absence (Leave / Absence)
-API: GET /api/absences
-  ID_PABSENCE: INT PK - identifiant unique
-  ID_PROFIL: INT FK TAB_PROFIL - ressource
-  PABS_DEBUT: DATE - date début
-  PABS_FIN: DATE - date fin
-  PABS_TYPE: INT - type absence
-  PABS_ETAT: INT - état validation
-  PABS_COMMENTAIRE: TEXT - commentaire
-  PABS_DUREE: DECIMAL - durée en jours
-
-### TAB_USER
-Description: Utilisateur Boond (accès manager/admin)
-API: GET /api/users, GET /api/users/{id}
-  ID_USER: INT PK - identifiant unique
-  USER_LOGIN: VARCHAR - login
-  USER_EMAIL: VARCHAR - email
-  USER_NOM: VARCHAR - nom
-  USER_PRENOM: VARCHAR - prénom
-  USER_ROLE: INT - rôle
-  USER_ETAT: INT - état (actif/inactif)
-  USER_LASTCONNEXION: DATETIME - dernière connexion
-  ID_PROFIL: INT FK TAB_PROFIL - profil associé
-  ID_SOCIETE: INT FK TAB_SOCIETE - agence
-
-### TAB_POLE
-Description: Pôle / Division (business unit division)
-API: GET /api/poles
-  ID_POLE: INT PK
-  POLE_NOM: VARCHAR - nom
-  POLE_CODE: VARCHAR - code
-  ID_SOCIETE: INT FK TAB_SOCIETE
-
-### TAB_ACTION
-Description: Action / CRM Action (emails, appels, rendez-vous...)
-API: GET/POST /api/actions, GET/PUT /api/actions/{id}
-  ID_ACTION: INT PK - identifiant unique
-  ACTION_TITLE: VARCHAR - titre
-  ACTION_DATE: DATETIME - date
-  ACTION_DATEECHEANCE: DATETIME - date d'échéance
-  ACTION_TYPE: INT - type d'action (cf. data.setting.typeOf.action)
-  ACTION_ETAT: INT - état
-  ACTION_COMMENTAIRE: TEXT - commentaire / corps
-  ACTION_PRIORITE: INT - priorité
-  ID_PROFIL: INT FK TAB_PROFIL - responsable
-  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact CRM lié
-  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - société liée
-  ID_AO: INT FK TAB_AO - opportunité liée
-  ID_PROJET: INT FK TAB_PROJET - projet lié
-  ID_POLE: INT FK TAB_POLE - pôle
-
-### TAB_TACHE
-Description: Tâche (Task)
-API: GET /api/tasks
-  ID_TACHE: INT PK
-  TACHE_TITRE: VARCHAR - titre
-  TACHE_DESCRIPTION: TEXT
-  TACHE_DEBUT: DATE
-  TACHE_FIN: DATE
-  TACHE_ETAT: INT - état
-  TACHE_PRIORITE: INT - priorité
-  ID_PROFIL: INT FK TAB_PROFIL - assigné
-  ID_PROJET: INT FK TAB_PROJET
-
-### TAB_VALIDATION
-Description: Validation (workflow approval)
-API: GET /api/validations
-  ID_VALIDATION: INT PK
-  VALID_TYPE: INT - type entité validée
-  VALID_ETAT: INT - état
-  VALID_DATE: DATETIME - date
-  VALID_COMMENTAIRE: TEXT
-  ID_PROFIL: INT FK TAB_PROFIL - valideur
-  ID_OBJET: INT - ID de l'objet validé
-
-### TAB_ECHEANCIER
-Description: Échéancier de facturation
-API: GET /api/schedules
-  ID_ECHEANCIER: INT PK
-  ECH_REF: VARCHAR - référence
-  ECH_MONTANTHT: DECIMAL - montant HT
-  ECH_MONTANTTTC: DECIMAL - montant TTC
-  ECH_DATE: DATE - date
-  ID_PROJET: INT FK TAB_PROJET
-  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE
-  ID_BONDECOMMANDE: INT FK TAB_BONDECOMMANDE
-
-### TAB_LOT
-Description: Lot / batch (forfait de projet)
-API: sous-ressource de projet
-  ID_LOT: INT PK
-  ID_PROJET: INT FK TAB_PROJET
-  LOT_TITRE: VARCHAR - titre
-  LOT_DEBUT: DATE - début
-  LOT_FIN: DATE - fin
-  LOT_BUDGET: DECIMAL - budget
-  LOT_CONSOMME: DECIMAL - consommé
-  LOT_RESTE: DECIMAL - reste à faire
-
-### TAB_JALON
-Description: Jalon / milestone
-API: sous-ressource de projet ou lot
-  ID_JALON: INT PK
-  ID_PROJET: INT FK TAB_PROJET
-  ID_LOT: INT FK TAB_LOT
-  JAL_TITRE: VARCHAR
-  JAL_DATE: DATE
-  JAL_MONTANTHT: DECIMAL
-  JAL_ETAT: INT
-
-### TAB_FACTURATION_PAIEMENT
-Description: Paiement d'une facture client
-API: (pas d'API directe)
-  ID_FACTURATION_PAIEMENT: INT PK
-  ID_FACTURATION: INT FK TAB_FACTURATION
-  FACTPAY_DATE: DATE
-  FACTPAY_MONTANT: DECIMAL
-  FACTPAY_TYPE: INT
-
-### TAB_ITEMFACTURE
-Description: Ligne d'une facture
-API: sous-ressource de facture
-  ID_ITEMFACTURE: INT PK
-  ID_FACTURATION: INT FK TAB_FACTURATION
-  ITEMFACT_LIBELLE: VARCHAR - libellé
-  ITEMFACT_QUANTITE: DECIMAL
-  ITEMFACT_PRIXUNITHT: DECIMAL
-  ITEMFACT_TAUXTVA: DECIMAL
-  ITEMFACT_TOTALHT: DECIMAL
-  ITEMFACT_TOTALTTC: DECIMAL
-
-### TAB_ITEMDEVIS
-Description: Ligne d'un devis
-API: sous-ressource de devis
-  ID_ITEMDEVIS: INT PK
-  ID_DEVIS: INT FK TAB_DEVIS
-  ITEMDEVIS_LIBELLE: VARCHAR
-  ITEMDEVIS_QUANTITE: DECIMAL
-  ITEMDEVIS_PRIXUNITHT: DECIMAL
-  ITEMDEVIS_TAUXTVA: DECIMAL
-  ITEMDEVIS_TOTALHT: DECIMAL
-
-### TAB_RIB
-Description: RIB / Coordonnées bancaires
-API: sous-ressource de profil ou société
-  ID_RIB: INT PK
-  RIB_IBAN: CHAR(34) - IBAN
-  RIB_BIC: CHAR(11) - BIC/SWIFT
-  RIB_BANQUE: VARCHAR - nom banque
-  RIB_DESCRIPTION: TEXT
-  RIB_DEFAULT: TINYINT(1) - RIB par défaut
-  ID_PROFIL: INT FK TAB_PROFIL
-  ID_SOCIETE: INT FK TAB_SOCIETE
-
-### TAB_REFERENCE
-Description: Référence (expérience) d'une ressource
-API: sous-ressource de profil
-  ID_REFERENCE: INT PK
-  ID_PROFIL: INT FK TAB_PROFIL
-  REF_TITRE: VARCHAR - titre du poste
-  REF_DESCRIPTION: TEXT
-  REF_DEBUT: DATE
-  REF_FIN: DATE
-  REF_CLIENT: VARCHAR - nom client
-  REF_TYPE: INT
-
-### TAB_AVANTAGE
-Description: Avantage salarié (Benefit)
-API: GET /api/benefits
-  ID_AVANTAGE: INT PK
-  ID_PROFIL: INT FK TAB_PROFIL
-  AVA_TYPE: INT - type avantage
-  AVA_MONTANT: DECIMAL - montant
-  AVA_DEBUT: DATE
-  AVA_FIN: DATE
-  AVA_COMMENTAIRE: TEXT
-
-### TAB_NOTATION
-Description: Notation (évaluation)
-API: GET /api/evaluations
-  ID_NOTATION: INT PK
-  NOTE_VALEUR: DECIMAL - note
-  NOTE_DATE: DATE
-  NOTE_COMMENTAIRE: TEXT
-  NOTE_TYPE: INT
-  ID_PROFIL: INT FK TAB_PROFIL
-  ID_NOTEUR: INT FK TAB_PROFIL - évaluateur
-
-### TAB_OBJECTIF
-Description: Objectif (Goal)
-API: GET /api/goals
-  ID_OBJECTIF: INT PK
-  OBJ_TITRE: VARCHAR
-  OBJ_DESCRIPTION: TEXT
-  OBJ_DATE_DEBUT: DATE
-  OBJ_DATE_FIN: DATE
-  OBJ_ETAT: INT
-  OBJ_POIDS: DECIMAL - pondération
-  ID_PROFIL: INT FK TAB_PROFIL
-
-### TAB_DOCUMENT
-Description: Document (fichier attaché)
-API: GET /api/documents
-  ID_DOCUMENT: INT PK
-  DOC_NOM: VARCHAR - nom du fichier
-  DOC_TYPE: INT - type document
-  DOC_DATE: DATETIME - date upload
-  DOC_SIZE: INT - taille fichier
-  ID_PROFIL: INT FK TAB_PROFIL
-  ID_PROJET: INT FK TAB_PROJET
-
-### TAB_CV
-Description: CV (curriculum vitae d'une ressource/candidat)
-API: GET /api/resources/{id}/cv
-  ID_CV: INT PK
-  ID_PROFIL: INT FK TAB_PROFIL
-  CV_NOM: VARCHAR - nom du CV
-  CV_LANGUE: VARCHAR - langue
-  CV_DATE: DATETIME - date création
-
-### TAB_LOG
-Description: Journal d'audit (Audit Log)
-API: GET /api/logs
-  ID_LOG: INT PK
-  LOG_DATE: DATETIME
-  LOG_ACTION: VARCHAR - action effectuée
-  LOG_TYPE: VARCHAR - type d'entité
-  LOG_ID_OBJET: INT - ID objet modifié
-  LOG_BEFORE: TEXT - valeur avant
-  LOG_AFTER: TEXT - valeur après
-  ID_USER: INT FK TAB_USER - utilisateur
-
-### TAB_NOTIFICATION
-Description: Notification interne
-API: GET /api/notifications
-  ID_NOTIFICATION: INT PK
-  NOTIF_TITRE: VARCHAR
-  NOTIF_MESSAGE: TEXT
-  NOTIF_DATE: DATETIME
-  NOTIF_LU: TINYINT(1) - lue (1=oui)
-  ID_PROFIL: INT FK TAB_PROFIL - destinataire
-
-### TAB_WEBHOOK
-Description: Webhook (notification externe)
-API: GET /api/webhooks
-  ID_WEBHOOK: INT PK
-  WH_URL: VARCHAR - URL destination
-  WH_EVENTS: TEXT - événements déclencheurs
-  WH_ETAT: INT - actif/inactif
-  WH_SECRET: VARCHAR - secret HMAC
-  ID_SOCIETE: INT FK TAB_SOCIETE
-
-### TAB_PROVIDER_INVOICE
-Description: Facture fournisseur (e-invoicing entrant)
-API: GET /api/providerinvoices
-  ID_PROVIDER_INVOICE: INT PK
-  PINV_REF: VARCHAR - référence
-  PINV_DATE: DATE
-  PINV_TOTALHT: DECIMAL
-  PINV_TOTALTTC: DECIMAL
-  PINV_ETAT: INT
-  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - fournisseur
-  ID_ACHAT: INT FK TAB_ACHAT - achat associé
-
-### TAB_THREAD
-Description: Fil de discussion / Thread (messagerie interne)
-API: GET /api/threads
-  ID_THREAD: INT PK
-  THREAD_TITRE: VARCHAR
-  THREAD_DATE: DATETIME
-  THREAD_ETAT: INT
-  ID_PROFIL: INT FK TAB_PROFIL - auteur
-
-### TAB_REPARTPRODUCTION
-Description: Répartition de production (entre pôles/agences)
-API: (pas d'API directe)
-  ID_REPARTPRODUCTION: INT PK
-  REPART_TAUX: DECIMAL - taux %
-  ID_PROJET: INT FK TAB_PROJET
-  ID_POLE: INT FK TAB_POLE
-  ID_SOCIETE: INT FK TAB_SOCIETE
-
-### TAB_LISTEABSENCES
-Description: Soldes de congés (Leave Balance)
-API: GET /api/leavebalances
-  ID_LISTEABSENCES: INT PK
-  ID_PROFIL: INT FK TAB_PROFIL
-  LISTABS_TYPE: INT - type congé
-  LISTABS_SOLDE: DECIMAL - solde jours
-  LISTABS_ANNEE: INT
-
-### TAB_ABONNEMENT
-Description: Abonnement Boond (subscription)
-API: (pas d'API directe)
-  ID_ABONNEMENT: INT PK - identifiant unique
-  AB_DEBUT: DATE - date de début
-  AB_FIN: DATE - date de fin
-  AB_NBMANAGERS: INT - nb managers autorisés
-  AB_NBCOLLABORATEURS: INT - nb collaborateurs autorisés
-  AB_MAXRESSOURCESINTRANET: SMALLINT - nb ressources avec intranet actif
-  AB_TYPEFACTURATION: TINYINT - type facturation (0=custom,1=manager,2=resource...)
-  AB_TAUXREMISE: DECIMAL - taux remise managers
-  AB_QUOTA: JSON - quotas utilisés
-  AB_ADDITIONAL_PRODUCTS: TEXT - produits additionnels (ex: backupdatabase_1|ai_100)
-
-### TAB_BAREMEKM
-Description: Barème kilométrique
-API: (pas d'API directe)
-  ID_BAREMEKM: INT PK
-  BAREME_ANNEE: INT - année
-  BAREME_CV: INT - puissance fiscale
-  BAREME_TAUX: DECIMAL - taux €/km
-  ID_SOCIETE: INT FK TAB_SOCIETE
-
-### TAB_TYPEFRAIS
-Description: Type de frais (catégories dépenses)
-API: (pas d'API directe)
-  ID_TYPEFRAIS: INT PK
-  TYPEFRAIS_NOM: VARCHAR - nom
-  TYPEFRAIS_CODE: VARCHAR - code
-  TYPEFRAIS_KM: TINYINT(1) - frais kilométrique
-  ID_SOCIETE: INT FK TAB_SOCIETE
-
-### TAB_TYPEHEURE
-Description: Type d'heure / activité
-API: (pas d'API directe)
-  ID_TYPEHEURE: INT PK
-  TYPEH_NOM: VARCHAR - nom
-  TYPEH_REF: VARCHAR - référence
-  TYPEH_TYPEACTIVITE: INT - type (3,4=spécial agence)
-  ID_SOCIETE: INT FK TAB_SOCIETE
-
-### TAB_CALENDRIER
-Description: Calendrier de travail
-API: GET /api/calendars
-  ID_CALENDRIER: INT PK
-  CAL_NOM: VARCHAR - nom
-  CAL_ANNEE: INT - année
-  ID_SOCIETE: INT FK TAB_SOCIETE
-
-### TAB_BUSINESSUNIT
-Description: Business Unit
-API: GET /api/businessunits
-  ID_BUSINESSUNIT: INT PK
-  BU_NOM: VARCHAR - nom
-  BU_CODE: VARCHAR - code
-  ID_SOCIETE: INT FK TAB_SOCIETE
-
-### TAB_PRODUIT
-Description: Produit (catalogue)
-API: GET /api/products
-  ID_PRODUIT: INT PK
-  PRODUIT_NOM: VARCHAR - nom
-  PRODUIT_REF: VARCHAR - référence
-  PRODUIT_PRIXHT: DECIMAL - prix HT
-  PRODUIT_TAUXTVA: DECIMAL - taux TVA
-  PRODUIT_TYPE: INT - type
-  ID_SOCIETE: INT FK TAB_SOCIETE
-
-### TAB_ROLE
-Description: Rôle utilisateur (permissions)
-API: (pas d'API directe)
-  ID_ROLE: INT PK
-  ROLE_NOM: VARCHAR - nom du rôle
-  ROLE_PERMISSIONS: TEXT - permissions JSON
-
-### TAB_COORDONNEES
-Description: Coordonnées de facturation (billing address)
-API: (pas d'API directe)
-  ID_COORDONNEES: INT PK
-  COORD_NOM: VARCHAR - nom
-  COORD_ADR: VARCHAR
-  COORD_CP: CHAR(10)
-  COORD_VILLE: VARCHAR
-  COORD_PAYS: VARCHAR
-  COORD_EMAIL: VARCHAR
-  COORD_TEL: VARCHAR
-  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE
-
-### TAB_BANKING_ACCOUNT
-Description: Compte bancaire connecté
-API: (pas d'API directe)
-  ID_BANKING_ACCOUNT: INT PK
-  BANK_NOM: VARCHAR - nom compte
-  BANK_IBAN: VARCHAR - IBAN
-  BANK_SOLDE: DECIMAL - solde
-  BANK_DATE: DATETIME
-  ID_BANKING_CONNECTION: INT FK TAB_BANKING_CONNECTION
-
-### TAB_BANKING_TRANSACTION
-Description: Transaction bancaire
-API: (pas d'API directe)
-  ID_BANKING_TRANSACTION: INT PK
-  BANKTRANS_DATE: DATE
-  BANKTRANS_MONTANT: DECIMAL
-  BANKTRANS_LIBELLE: VARCHAR
-  BANKTRANS_TYPE: INT
-  ID_BANKING_ACCOUNT: INT FK TAB_BANKING_ACCOUNT
-
-### TAB_ESIGNATURE
-Description: Signature électronique
-API: GET /api/esignatures
-  ID_ESIGNATURE: INT PK
-  ESIGN_ETAT: INT - état
-  ESIGN_DATE: DATETIME
-  ESIGN_PROVIDER: VARCHAR - fournisseur (docusign, etc.)
-  ID_DOCUMENT: INT FK TAB_DOCUMENT
-
-### TAB_AIAGENT
-Description: Agent IA (BoondAI)
-API: GET /api/ai/agents
-  ID_AIAGENT: INT PK
-  AGENT_NOM: VARCHAR
-  AGENT_TYPE: VARCHAR
-  AGENT_CONFIG: JSON
-
-### TAB_VECTOR
-Description: Vecteur IA (embeddings pour recherche sémantique)
-API: (pas d'API directe)
-  ID_VECTOR: INT PK
-  VEC_TYPE: VARCHAR - type entité
-  VEC_ID_OBJET: INT
-  VEC_DATA: TEXT - vecteur sérialisé
-  VEC_DATE: DATETIME
-
-### TAB_FLAG
-Description: Flag / marqueur sur entité
-API: (pas d'API directe)
-  ID_FLAG: INT PK
-  FLAG_TYPE: VARCHAR - type entité
-  FLAG_ID_OBJET: INT
-  FLAG_COLOR: VARCHAR - couleur
-  ID_PROFIL: INT FK TAB_PROFIL
-
-### TAB_USERCONFIG
-Description: Configuration utilisateur (préférences UI)
-API: (pas d'API directe)
-  ID_USERCONFIG: INT PK
-  ID_USER: INT FK TAB_USER
-  USERCONF_KEY: VARCHAR - clé paramètre
-  USERCONF_VALUE: TEXT - valeur
-
-### TAB_MISSIONDETAILS
-Description: Détails d'une mission
-API: sous-ressource de MISSIONPROJET
-  ID_MISSIONDETAILS: INT PK
-  ID_MISSIONPROJET: INT FK TAB_MISSIONPROJET
-  MISSION_DEBUT: DATE - début période
-  MISSION_FIN: DATE - fin période
-  MISSION_TARIF: DECIMAL - tarif
-  MISSION_TYPE: INT - type
-
-### TAB_POSITIONDETAILS
-Description: Détails d'un positionnement
-API: sous-ressource de POSITIONNEMENT
-  ID_POSITIONDETAILS: INT PK
-  ID_POSITIONNEMENT: INT FK TAB_POSITIONNEMENT
-
-### TAB_TEMPSEXCEPTION
-Description: Temps exceptionnel
-API: sous-ressource de TEMPS
-  ID_TEMPSEXCEPTION: INT PK
-  ID_TEMPS: INT FK TAB_TEMPS
-  TEMPSEX_DATE: DATE
-  TEMPSEX_DUREE: DECIMAL
-  TEMPSEX_TYPE: INT
-  TEMPSEX_COMMENTAIRE: VARCHAR
-
-### TAB_FRAISREEL
-Description: Frais réels (Real Expense)
-API: GET /api/realexpenses
-  ID_FRAISREEL: INT PK
-  ID_PROFIL: INT FK TAB_PROFIL
-  FRAISREEL_DATE: DATE
-  FRAISREEL_MONTANTTTC: DECIMAL
-  FRAISREEL_TYPE: INT
-  FRAISREEL_ETAT: INT
-
-### TAB_FRAISDETAILS
-Description: Détails de frais
-API: (pas d'API directe)
-  ID_FRAISDETAILS: INT PK
-  ID_FRAIS: INT FK TAB_FRAIS
-
-### TAB_CAECHEANCIER
-Description: CA prévisionnel sur échéancier
-API: (pas d'API directe)
-  ID_CAECHEANCIER: INT PK
-  ID_ECHEANCIER: INT FK TAB_ECHEANCIER
-  CAECH_MOIS: INT
-  CAECH_ANNEE: INT
-  CAECH_MONTANT: DECIMAL
-
-### TAB_DT
-Description: Document Technique (Technical Document)
-API: GET /api/technicaldocuments
-  ID_DT: INT PK
-  ID_PROFIL: INT FK TAB_PROFIL
-  DT_NOM: VARCHAR - nom
-  DT_DATE: DATETIME
-
-### TAB_PAIEMENT
-Description: Paiement (d'une facture achat fournisseur)
-API: sous-ressource de achat
-  ID_PAIEMENT: INT PK
-  ID_ACHAT: INT FK TAB_ACHAT
-  PAIEMENT_DATE: DATE
-  PAIEMENT_MONTANT: DECIMAL
-  PAIEMENT_TYPE: INT
-
-### TAB_CALENDRIER_JOUR
-Description: Jour calendrier (jours ouvrés/fériés)
-API: (pas d'API directe)
-  ID_CALENDRIER_JOUR: INT PK
-  ID_CALENDRIER: INT FK TAB_CALENDRIER
-  CALJ_DATE: DATE
-  CALJ_TYPE: INT - type jour (travaillé, férié, etc.)
-  CALJ_DUREE: DECIMAL - durée en jours
-
-### TAB_WEBHOOK_EVENT
-Description: Événement webhook déclenché
-API: (pas d'API directe)
-  ID_WEBHOOK_EVENT: INT PK
-  ID_WEBHOOK: INT FK TAB_WEBHOOK
-  WHE_TYPE: VARCHAR - type événement
-  WHE_PAYLOAD: TEXT - payload JSON
-  WHE_DATE: DATETIME
-  WHE_ETAT: INT - succès/échec
-
-### TAB_TYPELIEU
-Description: Type de lieu (télétravail, client, etc.)
-API: (pas d'API directe)
-  ID_TYPELIEU: INT PK
-  TYPELIEU_NOM: VARCHAR
-  TYPELIEU_CODE: VARCHAR
-  ID_SOCIETE: INT FK TAB_SOCIETE
-
-### TAB_TYPEFACTURATION
-Description: Type de facturation
-API: (pas d'API directe)
-  ID_TYPEFACTURATION: INT PK
-  TYPEFACT_NOM: VARCHAR
-  TYPEFACT_MODE: INT - mode facturation
-  ID_SOCIETE: INT FK TAB_SOCIETE
-
-### TAB_TYPEDECOMPTE
-Description: Type de décompte (heure/jour)
-API: (pas d'API directe)
-  ID_TYPEDECOMPTE: INT PK
-  TYPEDC_NOM: VARCHAR
-  ID_SOCIETE: INT FK TAB_SOCIETE
-
-### TAB_TYPEAVANTAGE
-Description: Type d'avantage salarié
-API: (pas d'API directe)
-  ID_TYPEAVANTAGE: INT PK
-  TYPEAVA_NOM: VARCHAR
-  ID_SOCIETE: INT FK TAB_SOCIETE
-
-### TAB_SHARED_ENTITY
-Description: Entité partagée entre agences
-API: (pas d'API directe)
-  ID_SHARED_ENTITY: INT PK
-  SE_TYPE: VARCHAR - type d'entité
-  SE_ID_OBJET: INT - ID de l'objet partagé
-  ID_SOCIETE_SOURCE: INT FK TAB_SOCIETE
-  ID_SOCIETE_DEST: INT FK TAB_SOCIETE
-
-### TAB_ESIGNATURE_RECIPIENT
-Description: Destinataire d'une signature électronique
-API: (pas d'API directe)
-  ID_ESIGNATURE_RECIPIENT: INT PK
-  ID_ESIGNATURE: INT FK TAB_ESIGNATURE
-  ESIGNREC_NOM: VARCHAR
-  ESIGNREC_EMAIL: VARCHAR
-  ESIGNREC_ETAT: INT
-  ESIGNREC_DATE: DATETIME
-
-### TAB_BANKING_CONNECTION
-Description: Connexion bancaire (agrégateur)
-API: (pas d'API directe)
-  ID_BANKING_CONNECTION: INT PK
-  BANKCONN_PROVIDER: VARCHAR - fournisseur
-  BANKCONN_ETAT: INT
-  ID_SOCIETE: INT FK TAB_SOCIETE
-
-### TAB_FORM
-Description: Formulaire (Form)
-API: GET /api/forms
-  ID_FORM: INT PK
-  FORM_TITRE: VARCHAR
-  FORM_DATE: DATETIME
-  FORM_ETAT: INT
-  ID_PROFIL: INT FK TAB_PROFIL
-
-### TAB_AITHREAD
-Description: Conversation IA
-API: (pas d'API directe)
-  ID_AITHREAD: INT PK
-  ID_AIAGENT: INT FK TAB_AIAGENT
-  AITHREAD_DATE: DATETIME
-  ID_PROFIL: INT FK TAB_PROFIL
-
-### TAB_INFLUENCER
-Description: Influenceur (relation influençant une opportunité)
-API: (pas d'API directe)
-  ID_INFLUENCER: INT PK
-  INFL_ROLE: INT - rôle de l'influenceur
-  INFL_COMMENTAIRE: TEXT
-  ID_AO: INT FK TAB_AO
-  ID_CRMCONTACT: INT FK TAB_CRMCONTACT
-
-### TAB_LIGNETEMPSPLANIFIE
-Description: Ligne de temps planifié (Planned Time)
-API: (pas d'API directe)
-  ID_LIGNETEMPSPLANIFIE: INT PK
-  ID_PROJET: INT FK TAB_PROJET
-  ID_PROFIL: INT FK TAB_PROFIL
-  LIGNETPLAN_DATE: DATE
-  LIGNETPLAN_DUREE: DECIMAL
-  LIGNETPLAN_TYPE: INT
-
-### TAB_CORRELATIONBONDECOMMANDE
-Description: Corrélation BC / facture (mapping BC↔Facture)
-API: (pas d'API directe)
-  ID_CORRELATIONBONDECOMMANDE: INT PK
-  ID_BONDECOMMANDE: INT FK TAB_BONDECOMMANDE
-  ID_FACTURATION: INT FK TAB_FACTURATION
-  CORR_MONTANT: DECIMAL
-
-### TAB_BILLABLE_ITEM
-Description: Élément facturable générique
-API: (pas d'API directe)
-  ID_BILLABLE_ITEM: INT PK
-  BI_TYPE: VARCHAR - type (temps, frais, achat)
-  BI_ID_OBJET: INT - ID de l'objet
-  BI_ETAT: INT - état facturation
-  ID_FACTURATION: INT FK TAB_FACTURATION
-
-### TAB_CLOSED_PERIOD
-Description: Période clôturée (locked period)
-API: (pas d'API directe)
-  ID_CLOSED_PERIOD: INT PK
-  CP_MOIS: INT - mois
-  CP_ANNEE: INT - année
-  CP_TYPE: INT - type (temps, frais...)
-  ID_SOCIETE: INT FK TAB_SOCIETE
-
-### TAB_LOCK
-Description: Verrou optimiste (record lock)
-API: (pas d'API directe)
-  ID_LOCK: INT PK
-  LOCK_TYPE: VARCHAR - type d'entité
-  LOCK_ID_OBJET: INT
-  LOCK_DATE: DATETIME
-  ID_USER: INT FK TAB_USER
-
-### TAB_REGLEEXCEPTION
-Description: Règle d'exception (paie/temps)
-API: (pas d'API directe)
-  ID_REGLEEXCEPTION: INT PK
-  REGLE_NOM: VARCHAR
-  REGLE_TYPE: INT
-  REGLE_VALEUR: DECIMAL
-  ID_SOCIETE: INT FK TAB_SOCIETE
-
-### TAB_TEMPSPLANIFIE
-Description: Temps planifié (Planned Timesheet)
-API: (pas d'API directe)
-  ID_TEMPSPLANIFIE: INT PK
-  ID_PROFIL: INT FK TAB_PROFIL
-  TPLAN_MOIS: INT
-  TPLAN_ANNEE: INT
-  TPLAN_TOTALJ: DECIMAL
-
-### TAB_TEMPSLIEUX
-Description: Lieux de travail sur feuille de temps
-API: (pas d'API directe)
-  ID_TEMPSLIEUX: INT PK
-  ID_TEMPS: INT FK TAB_TEMPS
-  ID_TYPELIEU: INT FK TAB_TYPELIEU
-  TL_DATE: DATE
-  TL_DUREE: DECIMAL
-
-### TAB_USERFLAG
-Description: Flag utilisateur personnel
-API: (pas d'API directe)
-  ID_USERFLAG: INT PK
-  ID_USER: INT FK TAB_USER
-  FLAG_TYPE: VARCHAR
-  FLAG_ID_OBJET: INT
-
-
-
-=== REGLES API CRITIQUES ===
-- Recherche: toujours ?keywords=NOM&maxResults=N (pas keyWord, pas keyword)
-- Modifier responsable CONTACT → PUT /api/contacts/{id} body: {mainManagerId: ID}
-- Modifier responsable RESSOURCE → PUT /api/resources/{id} body: {mainManagerId: ID, hrManagerId: ID}
-- Modifier responsable PROJET → PUT /api/projects/{id} body: {mainManagerId: ID}
-- Modifier responsable SOCIÉTÉ → PUT /api/companies/{id} body: {mainManagerId: ID}
-- Modifier responsable OPPORTUNITE → PUT /api/opportunities/{id} body: {mainManagerId: ID}
-- Les IDs managers = ID_PROFIL (TAB_PROFIL), pas ID_USER
-- Format dates: YYYY-MM-DD
-- Méthode écriture: tester PUT puis PATCH puis POST si 405
-- États entités: integers définis dans /api/application/dictionary
-`;
-
   async function askClaude(userMessage) {
-    const systemPrompt = `Tu es un assistant expert de l'ERP Boond Manager avec une connaissance exhaustive de sa base de données et de son API REST.
-
-REGLE ABSOLUE: Réponds UNIQUEMENT avec un objet JSON valide. Zéro texte avant/après. Zéro backtick. Zéro markdown.
-
-${BOOND_SCHEMA}
-
-=== FORMATS DE REPONSE ===
-
-Lecture simple (1 appel GET):
-{"action":"api_call","method":"GET","endpoint":"/api/contacts?keywords=DUPONT&maxResults=5","explanation":"Recherche du contact DUPONT"}
-
-Modification (PUT/PATCH avec auto-fallback):
-{"action":"write","endpoint":"/api/contacts/123","body":{"mainManagerId":456},"explanation":"Mise à jour responsable"}
-
-Multi-étapes (plusieurs appels nécessaires):
-{"action":"multi_step","steps":[{"method":"GET","endpoint":"/api/contacts?keywords=MONTEL&maxResults=3","explanation":"Cherche MONTEL"},{"method":"GET","endpoint":"/api/resources?keywords=SANCHEZ&maxResults=3","explanation":"Cherche SANCHEZ"}],"final_goal":"Mettre MONTEL sous responsabilité SANCHEZ"}
-
-Réponse sans API:
-{"action":"answer","text":"Ta réponse ici"}`;
+    const systemPrompt = 'Tu es un assistant expert de l ERP Boond Manager avec une connaissance exhaustive de sa base de donnees et de son API REST.\n\n' +
+      'REGLE ABSOLUE: Reponds UNIQUEMENT avec un objet JSON valide. Zero texte avant/apres. Zero backtick. Zero markdown.\n\n' +
+      BOOND_SCHEMA + '\n\n' +
+      '=== FORMATS DE REPONSE ===\n' +
+      'Lecture simple: ' + JSON.stringify({action:"api_call",method:"GET",endpoint:"/api/contacts?keywords=DUPONT&maxResults=5",explanation:"Recherche du contact DUPONT"}) + '\n' +
+      'Modification: ' + JSON.stringify({action:"write",endpoint:"/api/contacts/123",body:{mainManagerId:456},explanation:"Mise a jour responsable"}) + '\n' +
+      'Multi-etapes: ' + JSON.stringify({action:"multi_step",steps:[{method:"GET",endpoint:"/api/contacts?keywords=MONTEL&maxResults=3",explanation:"Cherche MONTEL"},{method:"GET",endpoint:"/api/resources?keywords=SANCHEZ&maxResults=3",explanation:"Cherche SANCHEZ"}],final_goal:"Mettre MONTEL sous responsabilite SANCHEZ"}) + '\n' +
+      'Reponse sans API: ' + JSON.stringify({action:"answer",text:"Ta reponse"});
 
     const text = await callClaudeRaw(systemPrompt, userMessage, 1500);
     try { return extractJSON(text); }
@@ -1729,22 +607,14 @@ Réponse sans API:
   }
 
   async function askClaudeFinalize(originalQuestion, stepsContext, finalGoal) {
-    const systemPrompt = `Tu es un assistant expert Boond Manager. Suite aux appels API exécutés, détermine la prochaine action.
+    const systemPrompt = 'Tu es un assistant expert Boond Manager. Suite aux appels API executes, determine la prochaine action.\n\n' +
+      'REGLE ABSOLUE: Reponds UNIQUEMENT avec un objet JSON valide.\n\n' +
+      BOOND_SCHEMA + '\n\n' +
+      'Si besoin modification: ' + JSON.stringify({action:"write",endpoint:"/api/contacts/ID",body:{mainManagerId:"ID_MANAGER"},explanation:"..."}) + '\n' +
+      'Si termine: ' + JSON.stringify({action:"done",summary:"Resume"}) + '\n' +
+      'Si erreur: ' + JSON.stringify({action:"error",message:"Explication"});
 
-REGLE ABSOLUE: Réponds UNIQUEMENT avec un objet JSON valide.
-
-${BOOND_SCHEMA}
-
-Si besoin d'une modification maintenant que tu as les IDs:
-{"action":"write","endpoint":"/api/contacts/ID","body":{"mainManagerId":ID_MANAGER},"explanation":"Explication"}
-
-Si tout est fait:
-{"action":"done","summary":"Résumé de ce qui a été fait"}
-
-Si erreur/impossible:
-{"action":"error","message":"Explication du problème"}`;
-
-    const text = await callClaudeRaw(systemPrompt, `Objectif: ${finalGoal}\n\nRésultats obtenus:\n${stepsContext}`, 800);
+    const text = await callClaudeRaw(systemPrompt, 'Objectif: ' + finalGoal + '\n\nResultats:\n' + stepsContext, 800);
     try { return extractJSON(text); }
     catch(e) { return { action:'done', summary: text }; }
   }
@@ -1752,19 +622,19 @@ Si erreur/impossible:
   async function summarize(question, result) {
     const snippet = JSON.stringify(result.data).slice(0, 2000);
     return await callClaudeRaw(
-      'Tu es un assistant Boond Manager. Fais un résumé clair en français (2-4 phrases max). Synthétise l\'essentiel sans répéter les données brutes.',
-      `Question: "${question}"\n\nRéponse API (statut ${result.status}):\n${snippet}`,
+      'Tu es un assistant Boond Manager. Fais un resume clair en francais (2-4 phrases). Synthetise l essentiel sans repeter les donnees brutes.',
+      'Question: "' + question + '"\n\nReponse API (statut ' + result.status + '):\n' + snippet,
       500
-    ) || 'Données reçues.';
+    ) || 'Donnees recues.';
   }
 
   function syntaxHL(json) {
     return json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+      .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(m) {
         let c = 'json-number';
         if (/^"/.test(m)) c = /:$/.test(m) ? 'json-key' : 'json-string';
         else if (/true|false/.test(m)) c = 'json-bool';
-        return '<span class="'+c+'">'+m+'</span>';
+        return '<span class="' + c + '">' + m + '</span>';
       });
   }
 
@@ -1779,12 +649,12 @@ Si erreur/impossible:
     av.textContent = role==='user' ? 'U' : 'AI';
     const bubble = document.createElement('div');
     bubble.className = role==='user' ? 'bubble user' : 'bubble ai';
-    bubble.innerHTML = text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>');
+    bubble.innerHTML = text.replace(/\n/g,'<br>');
     if (apiResult) {
       const block = document.createElement('div');
       block.className = 'result-block';
       const statusColor = apiResult.ok ? 'var(--accent)' : 'var(--danger)';
-      block.innerHTML = '<div class="result-block-header"><span style="color:'+statusColor+'">● '+apiResult.status+'</span><span>'+(apiResult.endpoint||'')+'</span></div><pre><code>'+syntaxHL(JSON.stringify(apiResult.data, null, 2))+'</code></pre>';
+      block.innerHTML = '<div class="result-block-header"><span style="color:' + statusColor + '">&#9679; ' + apiResult.status + '</span><span>' + (apiResult.endpoint||'') + '</span></div><pre><code>' + syntaxHL(JSON.stringify(apiResult.data, null, 2)) + '</code></pre>';
       bubble.appendChild(block);
     }
     div.appendChild(av);
@@ -1796,13 +666,13 @@ Si erreur/impossible:
   function setThinking(label) {
     let el = document.getElementById('thinking');
     if (!el) { el = document.createElement('div'); el.id='thinking'; el.className='thinking'; document.getElementById('chat').appendChild(el); }
-    el.innerHTML = '<div class="dots"><span></span><span></span><span></span></div> <span>'+(label||'Analyse...')+'</span>';
+    el.innerHTML = '<div class="dots"><span></span><span></span><span></span></div> <span>' + (label||'Analyse...') + '</span>';
     document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight;
   }
   function removeThinking() { document.getElementById('thinking')?.remove(); }
 
   async function sendMessage() {
-    if (!isConnected) { alert('Configure les tokens d\'abord !'); return; }
+    if (!isConnected) { alert('Configure les tokens d abord !'); return; }
     const input = document.getElementById('user-input');
     const msg = input.value.trim();
     if (!msg) return;
@@ -1816,63 +686,59 @@ Si erreur/impossible:
       removeThinking();
 
       if (intent.action === 'answer') {
-        addMessage('ai', intent.text || 'Je ne sais pas répondre.');
-
+        addMessage('ai', intent.text || 'Je ne sais pas repondre.');
       } else if (intent.action === 'api_call') {
-        addMessage('ai', intent.explanation || 'Exécution...');
+        addMessage('ai', intent.explanation || 'Execution...');
         setThinking('Appel Boond...');
         const result = await callBoond(intent.method||'GET', intent.endpoint, intent.body);
         removeThinking();
-        setThinking('Synthèse...');
+        setThinking('Synthese...');
         const summary = await summarize(msg, result);
         removeThinking();
         addMessage('ai', summary, { ...result, endpoint: intent.endpoint });
-
       } else if (intent.action === 'write') {
         addMessage('ai', intent.explanation || 'Modification en cours...');
         setThinking('Modification Boond...');
         const result = await callBoondAutoMethod(intent.endpoint, intent.body);
         removeThinking();
-        setThinking('Synthèse...');
+        setThinking('Synthese...');
         const summary = await summarize(msg, result);
         removeThinking();
-        addMessage('ai', summary + (result.usedMethod ? `\n*(méthode utilisée: ${result.usedMethod})*` : ''), { ...result, endpoint: intent.endpoint });
-
+        addMessage('ai', summary + (result.usedMethod ? ' [methode: ' + result.usedMethod + ']' : ''), { ...result, endpoint: intent.endpoint });
       } else if (intent.action === 'multi_step') {
-        addMessage('ai', `🔄 Action complexe — ${intent.steps.length} étapes nécessaires...`);
+        addMessage('ai', 'Action complexe en ' + intent.steps.length + ' etapes...');
         let stepsContext = '';
         for (let i = 0; i < intent.steps.length; i++) {
           const step = intent.steps[i];
-          setThinking(`Étape ${i+1}/${intent.steps.length}: ${step.explanation}`);
+          setThinking('Etape ' + (i+1) + '/' + intent.steps.length + ': ' + step.explanation);
           const result = await callBoond(step.method||'GET', step.endpoint, step.body);
           removeThinking();
-          stepsContext += `Étape ${i+1} (${step.explanation}) — statut ${result.status}:\n${JSON.stringify(result.data).slice(0,1500)}\n\n`;
-          addMessage('ai', `✓ Étape ${i+1}: ${step.explanation}`, { ...result, endpoint: step.endpoint });
+          stepsContext += 'Etape ' + (i+1) + ' (' + step.explanation + ') statut ' + result.status + ':\n' + JSON.stringify(result.data).slice(0,1500) + '\n\n';
+          addMessage('ai', 'Etape ' + (i+1) + ': ' + step.explanation, { ...result, endpoint: step.endpoint });
         }
         setThinking('Finalisation...');
         const next = await askClaudeFinalize(msg, stepsContext, intent.final_goal);
         removeThinking();
-
         if (next.action === 'write' || next.action === 'api_call') {
-          addMessage('ai', next.explanation || 'Application des changements...');
+          addMessage('ai', next.explanation || 'Application...');
           setThinking('Application...');
           const finalResult = next.action==='write'
             ? await callBoondAutoMethod(next.endpoint, next.body)
             : await callBoond(next.method||'GET', next.endpoint, next.body);
           removeThinking();
-          setThinking('Synthèse finale...');
+          setThinking('Synthese finale...');
           const summary = await summarize(msg, finalResult);
           removeThinking();
           addMessage('ai', summary, { ...finalResult, endpoint: next.endpoint });
         } else if (next.action === 'done') {
-          addMessage('ai', '✅ ' + (next.summary || 'Terminé avec succès.'));
+          addMessage('ai', next.summary || 'Termine avec succes.');
         } else {
-          addMessage('ai', '⚠️ Problème: ' + (next.message || 'Impossible de finaliser.'));
+          addMessage('ai', 'Probleme: ' + (next.message || 'Impossible de finaliser.'));
         }
       }
     } catch(err) {
       removeThinking();
-      addMessage('ai', `❌ Erreur: ${err.message}`);
+      addMessage('ai', 'Erreur: ' + err.message);
     }
     document.getElementById('send-btn').disabled = false;
   }
