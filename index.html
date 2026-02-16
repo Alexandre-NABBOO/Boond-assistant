@@ -607,23 +607,39 @@
     return { infoPath: '/information', type: 'resource' };
   }
 
-  // Convertit un body "plat" ou "avec mainManagerId" en body JSON:API pour /information
-  // Ex: { mainManagerId: 1873 } => { data: { id: "29286", type: "contact", attributes: { mainManager: { data: { id: "1873", type: "resource" } } } } }
+  // Convertit un body "plat" en body JSON:API pour PUT /information
+  // L'API Boond place mainManager dans relationships (pas attributes).
+  // Ex: { mainManagerId: 1873 }
+  //  => { data: { id: "29286", type: "contact",
+  //       attributes: { ... autres champs ... },
+  //       relationships: { mainManager: { data: { id: "1873", type: "resource" } } }
+  //     }}
   function buildInfoBody(endpoint, flatBody) {
     const cfg = getWriteConfig(endpoint);
     const id = extractIdFromEndpoint(endpoint);
     const attributes = {};
+    const relationships = {};
 
-    // Transformer mainManagerId -> mainManager.data
-    if (flatBody.mainManagerId !== undefined) {
-      attributes.mainManager = { data: { id: String(flatBody.mainManagerId), type: 'resource' } };
-    }
-    // Copier les autres champs tels quels dans attributes
     Object.keys(flatBody).forEach(k => {
-      if (k !== 'mainManagerId') attributes[k] = flatBody[k];
+      if (k === 'mainManagerId') {
+        // mainManager va dans relationships
+        relationships.mainManager = { data: { id: String(flatBody[k]), type: 'resource' } };
+      } else if (k === 'hrManagerId') {
+        relationships.hrManager = { data: { id: String(flatBody[k]), type: 'resource' } };
+      } else if (k === 'poleId') {
+        relationships.pole = { data: { id: String(flatBody[k]), type: 'pole' } };
+      } else if (k === 'companyId') {
+        relationships.company = { data: { id: String(flatBody[k]), type: 'company' } };
+      } else {
+        // Tous les autres champs vont dans attributes
+        attributes[k] = flatBody[k];
+      }
     });
 
-    return { data: { id: String(id), type: cfg.type, attributes } };
+    const data = { id: String(id), type: cfg.type };
+    if (Object.keys(attributes).length > 0) data.attributes = attributes;
+    if (Object.keys(relationships).length > 0) data.relationships = relationships;
+    return { data };
   }
 
   async function callBoondWrite(endpoint, body) {
