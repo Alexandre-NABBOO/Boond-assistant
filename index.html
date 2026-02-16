@@ -677,7 +677,7 @@
         'Accept': 'application/vnd.api+json, application/json'
       }
     };
-    if (body) opts.body = JSON.stringify(body);
+    if (body && !['GET','HEAD'].includes(method.toUpperCase())) opts.body = JSON.stringify(body);
     const res = await fetch('https://ui.boondmanager.com' + endpoint, opts);
     // Log les headers Allow pour debug
     const allow = res.headers.get('Allow') || res.headers.get('allow') || '';
