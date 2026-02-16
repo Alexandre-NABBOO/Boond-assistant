@@ -534,56 +534,12 @@
 
   var BOOND_SCHEMA = "SCHEMA BOOND MANAGER - 87 tables\n[TAB_CRMCONTACT] Contact CRM | API: GET/PUT /api/contacts, GET/PUT /api/contacts/{id} ? Recherche: ?keywords=NOM&maxResults=N\n  ID_CRMCONTACT: INT PK - identifiant unique\n  CCON_NOM: VARCHAR(100) - nom\n  CCON_PRENOM: VARCHAR(100) - pr?nom\n  CCON_EMAIL: VARCHAR(100) - email 1\n  CCON_EMAIL2: VARCHAR(100) - email 2\n  CCON_EMAIL3: VARCHAR(100) - email 3\n  CCON_TEL1: CHAR(20) - t?l?phone 1\n  CCON_TEL2: CHAR(20) - t?l?phone 2\n  CCON_FAX: CHAR(20) - fax\n  CCON_FONCTION: VARCHAR(100) - fonction/poste\n  CCON_SERVICE: VARCHAR(100) - service/d?partement\n  CCON_TYPE: INT - type (cf. data.setting.state.contact)\n  CCON_TYPES: TEXT - multi-types s?par?s |\n  CCON_TYPESOURCE: INT - type origine\n  CCON_SOURCE: VARCHAR(100) - d?tail origine\n  CCON_CIVILITE: INT - civilit?\n  CCON_ADR: VARCHAR(250) - adresse\n  CCON_CP: CHAR(10) - code postal\n  CCON_VILLE: VARCHAR(100) - ville\n  CCON_PAYS: VARCHAR(100) - pays (d?faut: France)\n  CCON_SUBDIVISION: VARCHAR(6) - sous-division ISO-3166-2\n  CCON_COMMENTAIRE: VARCHAR(250) - commentaires\n  CCON_OUTILS: TEXT - outils (tool1|tool2)\n  CCON_APPLICATIONS: TEXT - domaines activit?\n  CCON_DATE: DATETIME - date cr?ation\n  CCON_DATEUPDATE: DATETIME - date mise ? jour\n  CCON_DATELASTACTIVITY: DATETIME - derni?re activit?\n  CCON_ETATGDPR: TINYINT(1) - consentement RGPD\n  CCON_DATEGDPR: DATE - expiration RGPD\n  CCON_THUMBNAIL: VARCHAR(100) - photo\n  ID_PROFIL: INT FK TAB_PROFIL - responsable manager principal\n  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - soci?t? associ?e\n  ID_POLE: INT FK TAB_POLE - p?le\n  ID_SOCIETE: INT FK TAB_SOCIETE - agence\n  ID_CREATOR: INT FK TAB_PROFIL - cr?ateur\n\n[TAB_CRMSOCIETE] Soci?t? CRM (Company) | API: GET/PUT /api/companies, GET/PUT /api/companies/{id} ? Recherche: ?keywords=NOM&maxResults=N\n  ID_CRMSOCIETE: INT PK - identifiant unique\n  CSOC_SOCIETE: VARCHAR(100) - nom de la soci?t?\n  CSOC_TYPE: INT - type (cf. data.setting.state.company)\n  CSOC_TYPESOURCE: INT - type origine\n  CSOC_SOURCE: VARCHAR(100) - d?tail origine\n  CSOC_SIREN: VARCHAR(100) - SIREN\n  CSOC_NIC: CHAR(5) - NIC\n  CSOC_NAF: VARCHAR(100) - code NAF/APE\n  CSOC_RCS: VARCHAR(100) - RCS\n  CSOC_TVA: VARCHAR(100) - num?ro TVA\n  CSOC_STATUT: VARCHAR(100) - statut juridique\n  CSOC_EFFECTIF: INT(6) - effectif\n  CSOC_ADR: VARCHAR(250) - adresse\n  CSOC_CP: CHAR(10) - code postal\n  CSOC_VILLE: VARCHAR(100) - ville\n  CSOC_PAYS: VARCHAR(100) - pays\n  CSOC_SUBDIVISION: VARCHAR(6) - sous-division\n  CSOC_TEL: CHAR(20) - t?l?phone\n  CSOC_FAX: CHAR(20) - fax\n  CSOC_WEB: VARCHAR(100) - site web\n  CSOC_NUMERO: VARCHAR(250) - num?ro fournisseur\n  CSOC_METIERS: TEXT - commentaires m?tiers\n  CSOC_INTERVENTION: TEXT - domaine d'expertise\n  CSOC_SERVICES: TEXT - services/depts (s?par?s |)\n  CSOC_DATE: DATETIME - date cr?ation\n  CSOC_DATEUPDATE: DATETIME - date mise ? jour\n  CSOC_THUMBNAIL: VARCHAR(100) - logo\n  ID_PROFIL: INT FK TAB_PROFIL - responsable manager principal\n  ID_RESPSOC: INT FK TAB_CRMSOCIETE - soci?t? m?re\n  ID_POLE: INT FK TAB_POLE - p?le\n  ID_SOCIETE: INT FK TAB_SOCIETE - agence\n  ID_CREATOR: INT FK TAB_PROFIL - cr?ateur\n\n[TAB_PROFIL] Profil = Ressource ou Candidat | API: GET/PUT /api/resources, GET/PUT /api/resources/{id} | GET/PUT /api/candidates, GET/PUT /api/candidates/{id} ? Recherche: ?keywords=NOM\n  ID_PROFIL: INT PK - identifiant unique\n  PROFIL_NOM: VARCHAR(100) - nom\n  PROFIL_PRENOM: VARCHAR(100) - pr?nom\n  PROFIL_EMAIL: VARCHAR(100) - email principal\n  PROFIL_EMAIL2: VARCHAR(100) - email 2\n  PROFIL_EMAIL3: VARCHAR(100) - email 3\n  PROFIL_TEL1: CHAR(20) - t?l 1\n  PROFIL_TEL2: CHAR(20) - t?l 2\n  PROFIL_TEL3: CHAR(20) - t?l 3\n  PROFIL_FAX: CHAR(20) - fax\n  PROFIL_STATUT: VARCHAR(100) - fonction/titre (ressource) ou ?valuation (candidat)\n  PROFIL_ETAT: INT - ?tat ressource/candidat\n  PROFIL_MODEL: VARCHAR(50) - 'resource' ou 'candidate'\n  PROFIL_TYPE: INT - type (cf. data.setting.typeOf.resource) ? CAUTION: 1=ressource externe\n  PROFIL_CIVILITE: INT - civilit?\n  PROFIL_DATENAISSANCE: DATE - date de naissance\n  PROFIL_LIEUNAISSANCE: VARCHAR(100) - lieu de naissance\n  PROFIL_NATIONALITE: VARCHAR(100) - nationalit?\n  PROFIL_NUMSECU: CHAR(21) - num?ro s?cu\n  PROFIL_SITUATION: INT - situation familiale\n  PROFIL_ADR: VARCHAR(250) - adresse\n  PROFIL_CP: CHAR(10) - code postal\n  PROFIL_VILLE: VARCHAR(100) - ville\n  PROFIL_PAYS: VARCHAR(100) - pays\n  PROFIL_SUBDIVISION: VARCHAR(6) - sous-division\n  PROFIL_REFERENCE: VARCHAR(250) - r?f?rence (ressource uniquement)\n  PROFIL_VISIBILITE: TINYINT(1) - visibilit? (1=visible)\n  PROFIL_ALLOWCHANGE: TINYINT(1) - autorise modif TD depuis intranet (ressource)\n  PROFIL_DATE: DATETIME - date cr?ation\n  PROFIL_DATEUPDATE: DATETIME - date mise ? jour\n  PROFIL_DATELASTACTIVITY: DATETIME - derni?re activit?\n  PROFIL_DDCA: DATE - date anciennet?\n  PROFIL_ETATGDPR: TINYINT(1) - consentement RGPD\n  PROFIL_THUMBNAIL: UNKNOWN - photo\n  PARAM_DATEDISPO: DATE - date de disponibilit?\n  PARAM_TYPEDISPO: INT - type disponibilit? (1-4 ressource, 9/-1 candidat)\n  PARAM_COMMENTAIRE: TEXT - commentaires info\n  PARAM_COMMENTAIRE2: TEXT - commentaires admin\n  PARAM_CJM_ACTUAL: DECIMAL - CJM actuel\n  PARAM_TARIF1: DECIMAL - TJM moyen HT (ressource) ou salaire actuel (candidat)\n  PARAM_TARIF2: DECIMAL - salaire min souhait? (candidat)\n  PARAM_TARIF3: DECIMAL - salaire max souhait? (candidat)\n  PARAM_CONTRAT: INT - type contrat (candidat)\n  PARAM_MOBILITE: TEXT - zone mobilit?\n  PARAM_TYPESOURCE: INT - type source (candidat)\n  PARAM_SOURCE: VARCHAR(100) - d?tail source (candidat)\n  ID_RESPMANAGER: INT FK TAB_USER - responsable manager principal\n  ID_RESPRH: INT FK TAB_USER - responsable RH\n  ID_POLE: INT FK TAB_POLE - p?le\n  ID_SOCIETE: INT FK TAB_SOCIETE - agence\n  ID_CREATOR: INT FK TAB_PROFIL - cr?ateur\n  ID_DT: INT FK TAB_DT - document technique\n  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact fournisseur (candidat/externe)\n  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - soci?t? fournisseur (candidat/externe)\n  ID_EMBAUCHE: INT FK TAB_PROFIL - ressource issue de ce candidat\n\n[TAB_PROJET] Projet | API: GET/PUT /api/projects, GET/PUT /api/projects/{id} ? Recherche: ?keywords=REF\n  ID_PROJET: INT PK - identifiant unique\n  PRJ_REFERENCE: VARCHAR(100) - r?f?rence projet\n  PRJ_ETAT: INT - ?tat (cf. data.setting.state.project)\n  PRJ_TYPE: INT - mode (-1=abs inactif,-2=int inactif, cf. setting.typeOf.project)\n  PRJ_TYPEREF: INT - type projet\n  PRJ_DEBUT: DATE - date d?but\n  PRJ_FIN: DATE - date fin\n  PRJ_COMMENTAIRES: TEXT - commentaires\n  PRJ_TAUXHORAIRE: DECIMAL - taux unitaire\n  PRJ_TARIFADDITIONNEL: DECIMAL - CA additionnel\n  PRJ_INVESTISSEMENT: DECIMAL - co?ts additionnels\n  PRJ_RESTEAFAIRE: DECIMAL - reste ? faire (mode forfait)\n  PRJ_DEVISE: INT - devise\n  PRJ_CHANGE: DECIMAL - taux de change\n  PRJ_ADR: VARCHAR(250) - adresse livraison\n  PRJ_CP: CHAR(10) - CP livraison\n  PRJ_VILLE: VARCHAR(100) - ville livraison\n  PRJ_PAYS: VARCHAR(100) - pays livraison\n  PRJ_LOTSTAB: TINYINT(1) - afficher onglet lots\n  PRJ_DATE: DATETIME - date cr?ation\n  PRJ_DATEUPDATE: DATETIME - date mise ? jour\n  PRJ_DATELASTACTIVITY: DATETIME - derni?re activit?\n  ID_PROFIL: INT FK TAB_PROFIL - responsable manager principal\n  ID_PROFILCDP: TINYTEXT - liste chefs de projet (IDs s?par?s |)\n  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - soci?t? cliente\n  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact client\n  ID_CRMTECHNIQUE: INT FK TAB_CRMCONTACT - contact technique\n  ID_AO: INT FK TAB_AO - opportunit? li?e\n  ID_POLE: INT FK TAB_POLE - p?le\n  ID_SOCIETE: INT FK TAB_SOCIETE - agence\n\n[TAB_AO] Appel d'offres / Opportunit? (Opportunity) | API: GET/PUT /api/opportunities, GET/PUT /api/opportunities/{id}\n  ID_AO: INT PK\n  AO_TITLE: VARCHAR(150) - titre\n  AO_REF: VARCHAR(250) - r?f?rence\n  AO_ETAT: INT - ?tat (cf. data.setting.state.opportunity)\n  AO_DEBUT: DATE - date de d?but\n  AO_FIN: DATE - date de fin\n  AO_DATELIMITE: DATE - date limite\n  AO_DATECLOSING: DATE - date de closing\n  AO_TYPE: INT - mode (cf. data.setting.typeOf.project mode)\n  AO_TYPEREF: INT - type projet\n  AO_TYPESOURCE: INT - type origine\n  AO_SOURCE: VARCHAR - d?tail origine\n  AO_BUDGET: DECIMAL - budget estim?\n  AO_CA: DECIMAL - CA estim?\n  AO_TARIFADDITIONNEL: DECIMAL - CA additionnel\n  AO_INVESTISSEMENT: DECIMAL - co?ts additionnels\n  AO_PROBA: TINYINT - pond?ration (probabilit? %)\n  AO_FORCEPROBA: TINYINT(1) - forcer la proba manuellement\n  AO_DUREE: INT - dur?e\n  AO_TYPEDEBUT: TINYINT - type d?but (1=imm?diat, 2=apr?s date)\n  AO_DESCRIPTION: TEXT - description\n  AO_CRITERES: TEXT - crit?res\n  AO_OUTILS: TEXT - outils (tool1|level#tool2|level)\n  AO_APPLICATIONS: TEXT - domaines d'activit? (cat|domain s?par?s |)\n  AO_INTERVENTION: TEXT - zone d'expertise\n  AO_LIEU: TEXT - lieu / mobilit?\n  AO_TAUXHORAIRE: DECIMAL - taux unitaire\n  AO_VISIBILITE: TINYINT(1) - visibilit? (1=visible)\n  AO_DEPOT: DATETIME - date cr?ation\n  AO_DATEUPDATE: DATETIME - date mise ? jour\n  AO_DATELASTACTIVITY: DATETIME - derni?re activit?\n  ID_PROFIL: INT FK TAB_PROFIL - responsable principal\n  ID_PROFILRH: INT FK TAB_PROFIL - responsable RH\n  ID_CRMSOCIETE: INT FK TAB_CRMSOCIETE - soci?t?\n  ID_CRMCONTACT: INT FK TAB_CRMCONTACT - contact\n  ID_POLE: INT FK TAB_POLE - p?le\n  ID_SOCIETE: INT FK TAB_SOCIETE - agence\n\n[TAB_FACTURATION] Facture / Invoice | API: GET/PUT /api/bills, GET/PUT /api/bills/{id}\n  ID_FACTURATION: INT PK\n  FACT_REF: VARCHAR(250) - r?f?rence\n  FACT_DATE: DATE - date de facturation\n  FACT_DEBUT: DATE - p?riode d?but\n  FACT_FIN: DATE - p?riode fin\n  FACT_ETAT: INT - ?tat (cf. data.setting.state.invoice)\n  FACT_AVOIR: TINYINT(1) - avoir/credit note (1=oui)\n  FACT_CLOTURE: TINYINT(1) - cl?tur?e (1=oui)\n  FACT_TOTALHT: DECIMAL - total HT\n  FACT_TOTALTTC: DECIMAL - total TTC\n  FACT_AMOUNT_PAYABLE: DECIMAL - montant restant ? payer TTC\n  FACT_TAUXREMISE: DECIMAL - taux remise\n  FACT_TYPEPAYMENT: INT - moyen paiement\n  FACT_CONDREGLEMENT: TINYINT - conditions r?glement\n  FACT_DATEREGLEMENTATTENDUE: DATE - date paiement attendue\n  FACT_DATEREGLEMENTRECUE: DATE - date paiement re?ue\n  FACT_FORCEDATEREGLEMENTATTENDUE: TINYINT(1) - date paiement forc?e\n  FACT_TYPE_OF: TINYINT - type contenu (0=all,1=temps,2=frais,3=achats...)\n  FACT_NATURE: TINYINT(1) - nature (0=service, 1=bien)\n  FACT_COMMENTAIRE: TEXT - commentaires\n  FACT_SHOWCOMMENTAIRE: TINYINT(1) - afficher commentaire sur PDF\n  FACT_ETAT_ENVOI: TINYINT(1) - ?tat envoi\n  FACT_DEVISE: INT - devise\n  FACT_CHANGE: DECIMAL - taux de change\n  FACT_CREATEDAT: DATETIME - date cr?ation\n  FACT_UPDATEDAT: DATETIME - date MAJ\n  FACT_CC_NOM: VARCHAR(100) - nom soci?t? destinataire\n  FACT_CC_CONTACT: VARCHAR(200) - contact destinataire\n  FACT_CC_ADR1: VARCHAR(250) - adresse destinataire\n  FACT_CC_SIREN: VARCHAR(95) - SIREN destinataire\n  FACT_SOCIETE_RAISON: VARCHAR(100) - nom agence ?mettrice\n  FACT_SOCIETE_SIREN: VARCHAR(95) - SIREN agence\n  FACT_RIB_IBAN: CHAR(34) - IBAN\n  FACT_RIB_BIC: CHAR(11) - BIC\n  ID_BONDECOMMANDE: INT FK TAB_BONDECOMMANDE - bon de commande\n  ID_ECHEANCIER: INT FK TAB_ECHEANCIER - ?ch?ancier\n  ID_PARENT_FACTURATION: INT FK TAB_FACTURATION - facture parente (avoir)\n  ID_CREATOR: INT FK TAB_PROFIL - cr?ateur\n\nREGLES CRITIQUES:\n- Recherche: ?keywords=NOM&maxResults=N\n- Changer responsable CONTACT: PUT /api/contacts/ID body: {mainManagerId: ID_PROFIL}\n- Changer responsable RESSOURCE: PUT /api/resources/ID body: {mainManagerId: ID_PROFIL}\n- Changer responsable PROJET: PUT /api/projects/ID body: {mainManagerId: ID_PROFIL}\n- Changer responsable SOCIETE: PUT /api/companies/ID body: {mainManagerId: ID_PROFIL}\n- Changer responsable OPPORTUNITE: PUT /api/opportunities/ID body: {mainManagerId: ID_PROFIL}\n- ID manager = ID_PROFIL (pas ID_USER)\n- Format dates: YYYY-MM-DD\n- Methodes ecriture: essayer PUT puis PATCH puis POST si 405";
 
-  // ─────────────────────────────────────────────────────────
-  // FORMAT JSON:API pour les PATCH
-  // L'API Boond suit le standard JSON:API (jsonapi.org).
-  // Pour mettre à jour une ressource, le body doit être :
-  //   { data: { type: "contact"|"resource"|..., id: "123", attributes: { champ: valeur } } }
-  // Pour mettre à jour une relation (ex: mainManager), deux options existent :
-  //   1. Via attributes (si l'API l'accepte en PATCH) :
-  //      { data: { type, id, attributes: { mainManagerId: "1873" } } }
-  //   2. Via relationships endpoint :
-  //      PATCH /api/contacts/123/relationships/mainManager
-  //      body: { data: { type: "resource", id: "1873" } }
-  // On tente les deux variantes.
-  // ─────────────────────────────────────────────────────────
-
-  // Map endpoint → type JSON:API
-  const ENDPOINT_TYPE_MAP = {
-    '/api/contacts':      'contact',
-    '/api/companies':     'company',
-    '/api/resources':     'resource',
-    '/api/candidates':    'candidate',
-    '/api/projects':      'project',
-    '/api/opportunities': 'opportunity',
-    '/api/bills':         'bill',
-  };
-
-  function getJsonApiType(endpoint) {
-    for (const [prefix, type] of Object.entries(ENDPOINT_TYPE_MAP)) {
-      if (endpoint.startsWith(prefix)) return type;
-    }
-    return 'resource'; // fallback
-  }
-
   // Extrait l'ID numérique d'un endpoint comme /api/contacts/29286
   function extractIdFromEndpoint(endpoint) {
     const m = endpoint.match(/\/(\d+)$/);
     return m ? m[1] : null;
   }
 
-  // Construit un body JSON:API à partir d'un body "plat"
-  // ex: { mainManagerId: 1873 } → { data: { type: "contact", id: "29286", attributes: { mainManagerId: 1873 } } }
-  function toJsonApiBody(endpoint, flatBody) {
-    const type = getJsonApiType(endpoint);
-    const id   = extractIdFromEndpoint(endpoint);
-    const wrapper = { data: { type } };
-    if (id) wrapper.data.id = id;
-    // Si le body est déjà en format JSON:API, on le retourne tel quel
-    if (flatBody && flatBody.data) return flatBody;
-    wrapper.data.attributes = flatBody || {};
-    return wrapper;
-  }
 
   function saveConfig() {
     config.clientToken = document.getElementById('clientToken').value.trim();
@@ -616,62 +572,73 @@
     return h + '.' + p + '.' + await toHmacSha256Base64(h+'.'+p, config.clientKey);
   }
 
-  // ─── callBoond : GET utilise application/json, PATCH/PUT/POST utilise application/vnd.api+json ───
+  // ─── callBoond : utilisé pour les GETs (lecture) ───
+  // Les écritures passent toujours par callBoondWrite → callBoondRaw
   async function callBoond(method, endpoint, body) {
-    const jwt = await buildBoondJWT();
-    const isWrite = ['PATCH','PUT','POST'].includes(method.toUpperCase());
-    const contentType = isWrite ? 'application/vnd.api+json' : 'application/json';
+    return callBoondRaw(method, endpoint, body, 'application/json');
+  }
 
+
+  // ─── callBoondWrite : stratégie d'écriture Boond ───
+  // L'API Boond n'expose PAS de route d'écriture sur /api/{resource}/{id} individuellement.
+  // Les mises à jour passent par différentes conventions selon l'endpoint.
+  // Stratégie testée dans l'ordre :
+  //
+  // 1. PUT /api/contacts/ID          body plat application/json   (convention Boond standard)
+  // 2. PUT /api/contacts/ID          body plat application/json (sans encapsulation JSON:API)
+  // 3. PATCH /api/contacts/ID        body plat application/json
+  // 4. PUT /api/contacts             body avec id inclus { id: "29286", mainManagerId: 1873 }
+  // 5. POST /api/contacts/ID         body plat
+  async function callBoondWrite(endpoint, body) {
+    const id = extractIdFromEndpoint(endpoint);
+
+    // Tentative 1 : PUT sur /endpoint/ID avec body plat en application/json
+    let r = await callBoondRaw('PUT', endpoint, body, 'application/json');
+    if (r.status !== 405 && r.status !== 415 && r.status !== 404) return { ...r, usedMethod: 'PUT /id (json)' };
+
+    // Tentative 2 : PATCH sur /endpoint/ID avec body plat en application/json
+    r = await callBoondRaw('PATCH', endpoint, body, 'application/json');
+    if (r.status !== 405 && r.status !== 415 && r.status !== 404) return { ...r, usedMethod: 'PATCH /id (json)' };
+
+    // Tentative 3 : PUT sur /endpoint/ID avec body plat en application/vnd.api+json
+    r = await callBoondRaw('PUT', endpoint, body, 'application/vnd.api+json');
+    if (r.status !== 405 && r.status !== 415 && r.status !== 404) return { ...r, usedMethod: 'PUT /id (vnd.api+json)' };
+
+    // Tentative 4 : PUT sur l'endpoint de liste (/api/contacts sans ID) avec id dans le body
+    if (id) {
+      const listEndpoint = endpoint.replace(/\/\d+$/, '');
+      const bodyWithId = { id, ...body };
+      r = await callBoondRaw('PUT', listEndpoint, bodyWithId, 'application/json');
+      if (r.status !== 405 && r.status !== 415 && r.status !== 404) return { ...r, usedMethod: 'PUT /list + id in body' };
+    }
+
+    // Tentative 5 : POST sur /endpoint/ID body plat
+    r = await callBoondRaw('POST', endpoint, body, 'application/json');
+    if (r.status !== 405 && r.status !== 415 && r.status !== 404) return { ...r, usedMethod: 'POST /id (json)' };
+
+    return { ok: false, status: 405, data: { error: 'Aucune méthode d\'écriture n\'a fonctionné. Statuts: PUT 405/415/404, PATCH 405/415/404, POST 405/415/404' }, usedMethod: 'none' };
+  }
+
+  // ─── callBoondRaw : appel bas niveau sans encapsulation automatique ───
+  async function callBoondRaw(method, endpoint, body, contentType) {
+    const jwt = await buildBoondJWT();
     const opts = {
       method,
       headers: {
         'X-Jwt-Client-Boondmanager': jwt,
-        'Content-Type': contentType,
+        'Content-Type': contentType || 'application/json',
         'Accept': 'application/vnd.api+json, application/json'
       }
     };
-
-    if (body && isWrite) {
-      // Encapsule automatiquement en JSON:API si ce n'est pas déjà le cas
-      const jsonApiBody = toJsonApiBody(endpoint, body);
-      opts.body = JSON.stringify(jsonApiBody);
-    }
-
+    if (body) opts.body = JSON.stringify(body);
     const res = await fetch('https://ui.boondmanager.com' + endpoint, opts);
+    // Log les headers Allow pour debug
+    const allow = res.headers.get('Allow') || res.headers.get('allow') || '';
     let data = null;
     try { data = await res.json(); }
-    catch(e) { data = { error: 'Non-JSON response', status: res.status }; }
+    catch(e) { data = { error: 'Non-JSON response', status: res.status, allowHeader: allow }; }
+    if (allow) data._allowHeader = allow;
     return { status: res.status, ok: res.ok, data };
-  }
-
-  // ─── callBoondWrite : tente PATCH d'abord, puis les variantes ───
-  // Stratégie pour les mises à jour :
-  // 1. PATCH /api/contacts/ID  avec body JSON:API attributes
-  // 2. PATCH /api/contacts/ID/relationships/mainManager  (endpoint relation dédié)
-  // 3. PUT   /api/contacts/ID  avec body JSON:API
-  // 4. POST  /api/contacts/ID  avec body JSON:API
-  async function callBoondWrite(endpoint, body) {
-    // Tentative 1 : PATCH standard JSON:API
-    let r = await callBoond('PATCH', endpoint, body);
-    if (r.status !== 405 && r.status !== 415) return { ...r, usedMethod: 'PATCH' };
-
-    // Tentative 2 : PATCH sur l'endpoint de relation dédié (si mainManagerId dans le body)
-    if (body && body.mainManagerId) {
-      const relEndpoint = endpoint + '/relationships/mainManager';
-      const relBody = { data: { type: 'resource', id: String(body.mainManagerId) } };
-      r = await callBoond('PATCH', relEndpoint, relBody);
-      if (r.status !== 405 && r.status !== 415) return { ...r, usedMethod: 'PATCH (relationships)' };
-    }
-
-    // Tentative 3 : PUT standard JSON:API
-    r = await callBoond('PUT', endpoint, body);
-    if (r.status !== 405 && r.status !== 415) return { ...r, usedMethod: 'PUT' };
-
-    // Tentative 4 : POST standard JSON:API
-    r = await callBoond('POST', endpoint, body);
-    if (r.status !== 405 && r.status !== 415) return { ...r, usedMethod: 'POST' };
-
-    return { ok: false, status: 405, data: { error: 'No write method worked (PATCH/PUT/POST all returned 405/415)' }, usedMethod: 'none' };
   }
 
   function extractJSON(text) {
