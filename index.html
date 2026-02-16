@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:       #0d0f14;h
+      --bg:       #0d0f14;
       --surface:  #13161d;
       --border:   #1f2330;
       --accent:   #4fffb0;
@@ -582,6 +582,10 @@
   // ─── callBoond : utilisé pour les GETs (lecture) ───
   // Les écritures passent toujours par callBoondWrite → callBoondRaw
   async function callBoond(method, endpoint, body) {
+    // Les writes passent TOUJOURS par callBoondWrite (qui gère /information + JSON:API)
+    if (['PUT', 'PATCH', 'POST'].includes(method.toUpperCase()) && body) {
+      return callBoondWrite(endpoint, body);
+    }
     return callBoondRaw(method, endpoint, body, 'application/json');
   }
 
@@ -880,7 +884,7 @@
           { ...result, endpoint: intent.endpoint }
         );
 
-      } else if (intent.action === 'multi_write') { addMessage('ai', intent.explanation || (intent.writes.length + ' modifications en cours...')); let allOk = true; let lastResult = null; for (let i = 0; i < intent.writes.length; i++) { const w = intent.writes[i]; setThinking((i+1) + '/' + intent.writes.length + ': ' + w.explanation); assertNoPlaceholders(w.endpoint); const r = await callBoondWrite(w.endpoint, w.body); removeThinking(); lastResult = r; if (!r.ok) { addMessage('ai', '❌ Échec (' + r.status + ') sur ' + w.endpoint + '. Arrêt.', { ...r, endpoint: w.endpoint }); allOk = false; break; } addMessage('ai', '✓ ' + w.explanation, { ...r, endpoint: w.endpoint }); } if (allOk) { addMessage('ai', '✅ ' + intent.writes.length + ' modification(s) appliquée(s) avec succès.'); } } else if (intent.action === 'multi_step') {
+      } else if (intent.action === 'multi_step') {
         addMessage('ai', 'Action complexe en ' + intent.steps.length + ' étapes...');
         let stepsContext = '';
 
@@ -888,7 +892,7 @@
           const step = intent.steps[i];
           setThinking('Étape ' + (i+1) + '/' + intent.steps.length + ': ' + step.explanation);
           assertNoPlaceholders(step.endpoint);
-          const result = step.action === 'write' ? await callBoondWrite(step.endpoint, step.body) : await callBoond(step.method || 'GET', step.endpoint, step.body);
+          const result = await callBoond(step.method || 'GET', step.endpoint, step.body);
           removeThinking();
           if (!result.ok) {
             addMessage('ai',
